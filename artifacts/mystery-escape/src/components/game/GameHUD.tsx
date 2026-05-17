@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useGame } from "@/contexts/GameContext";
 import { usePuzzle } from "@/contexts/PuzzleContext";
 import { ObjectiveTracker } from "@/components/game/ObjectiveTracker";
+import { ROOM_META } from "@/rooms/index";
 import { cn } from "@/lib/utils";
 
 const HINTS_DATA = [
@@ -12,27 +13,45 @@ const HINTS_DATA = [
   "The book that protrudes from the shelf is not a book at all — it's a lever for a hidden passage.",
 ];
 
+const LAB_HINTS_DATA = [
+  "The emergency locker on the left wall may have been left open in the evacuation.",
+  "UV markings glow in darkness — your flashlight beam might reveal them. Try USE mode on the dark corner.",
+  "The terminal's boot sequence is stencilled above the monitor. The door code will appear once power is restored.",
+];
+
 function formatTime(s: number) {
   const m = Math.floor(s / 60);
   const sec = s % 60;
   return `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
 }
 
-const ROOM_PUZZLE_COUNT = 3;
-
 export function GameHUD() {
-  const { setPaused, hintsRemaining, useHint, currentRoom } = useGame();
-  const { solvedCount } = usePuzzle();
+  const { setPaused, hintsRemaining, useHint, currentRoom, roomId } = useGame();
+  const { solvedIds } = usePuzzle();
   const [seconds, setSeconds] = useState(3600);
   const [hintOpen, setHintOpen] = useState(false);
   const [revealedHints, setRevealedHints] = useState<number[]>([]);
   const isLowTime = seconds <= 60;
+
+  const roomMeta = ROOM_META[roomId as keyof typeof ROOM_META];
+  const roomPuzzleCount = roomMeta?.puzzleIds.length ?? 3;
+  const solvedCount = roomMeta?.puzzleIds.filter((id) => solvedIds.has(id)).length ?? 0;
+  const allSolved = solvedCount === roomPuzzleCount;
+
+  const hintsData = roomId === "underground-lab" ? LAB_HINTS_DATA : HINTS_DATA;
 
   useEffect(() => {
     if (seconds <= 0) return;
     const id = setInterval(() => setSeconds((s) => s - 1), 1000);
     return () => clearInterval(id);
   }, [seconds]);
+
+  // Reset timer on room change
+  useEffect(() => {
+    setSeconds(3600);
+    setRevealedHints([]);
+    setHintOpen(false);
+  }, [roomId]);
 
   const revealHint = (i: number) => {
     if (!revealedHints.includes(i)) {
@@ -73,27 +92,26 @@ export function GameHUD() {
       </div>
 
       <div className="flex items-center gap-2">
-        {/* Puzzle progress */}
-        <AnimatePresence>
-          <motion.div
-            key={solvedCount}
-            initial={solvedCount > 0 ? { scale: 1.2, opacity: 0 } : false}
-            animate={{ scale: 1, opacity: 1 }}
-            className={cn(
-              "hidden sm:flex items-center gap-1.5 rounded-sm border px-2.5 py-1.5 backdrop-blur-md transition-all",
-              solvedCount === ROOM_PUZZLE_COUNT
-                ? "border-emerald-500/40 bg-emerald-400/10 text-emerald-400"
-                : solvedCount > 0
-                  ? "border-primary/30 bg-card/70 text-primary/80"
-                  : "border-border/30 bg-card/60 text-muted-foreground/50"
-            )}
-            data-testid="puzzle-progress"
-          >
-            <KeyRound className="h-3.5 w-3.5" strokeWidth={1.5} />
-            <span className="font-mono text-[10px]">{solvedCount}/{ROOM_PUZZLE_COUNT}</span>
-          </motion.div>
-        </AnimatePresence>
+        {/* Puzzle progress — room-aware */}
+        <motion.div
+          key={`${roomId}-${solvedCount}`}
+          initial={solvedCount > 0 ? { scale: 1.2, opacity: 0 } : false}
+          animate={{ scale: 1, opacity: 1 }}
+          className={cn(
+            "hidden sm:flex items-center gap-1.5 rounded-sm border px-2.5 py-1.5 backdrop-blur-md transition-all",
+            allSolved
+              ? "border-emerald-500/40 bg-emerald-400/10 text-emerald-400"
+              : solvedCount > 0
+                ? "border-primary/30 bg-card/70 text-primary/80"
+                : "border-border/30 bg-card/60 text-muted-foreground/50"
+          )}
+          data-testid="puzzle-progress"
+        >
+          <KeyRound className="h-3.5 w-3.5" strokeWidth={1.5} />
+          <span className="font-mono text-[10px]">{solvedCount}/{roomPuzzleCount}</span>
+        </motion.div>
 
+        {/* Hints */}
         <div className="relative">
           <button
             onClick={() => setHintOpen(!hintOpen)}
@@ -132,7 +150,7 @@ export function GameHUD() {
                   <span className="font-mono text-xs text-primary/70">{hintsRemaining} remaining</span>
                 </div>
                 <div className="p-2 space-y-1.5">
-                  {HINTS_DATA.map((hint, i) => {
+                  {hintsData.map((hint, i) => {
                     const isRevealed = revealedHints.includes(i);
                     const canReveal = i === revealedHints.length && hintsRemaining > 0;
                     return (

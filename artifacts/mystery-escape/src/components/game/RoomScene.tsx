@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { InteractionMarker } from "@/components/game/InteractionMarker";
 import { AtmosphericOverlay } from "@/components/game/AtmosphericOverlay";
@@ -53,9 +54,14 @@ const PUZZLE_DEFINITIONS: Record<string, PuzzleDefinition> = {
 };
 
 export function RoomScene() {
-  const { openInspect, examinedIds, markExamined, activeAction, triggerRoomTransition, completeObjective } = useGame();
+  const { openInspect, examinedIds, markExamined, activeAction, completeObjective } = useGame();
   const { selectedSlot, selectedItem, useItem } = useInventory();
   const { openPuzzle, solvedIds } = usePuzzle();
+
+  useEffect(() => {
+    if (solvedIds.has("room-safe-keypad"))    completeObjective("find-hidden");
+    if (solvedIds.has("room-clock-sequence")) completeObjective("check-clock");
+  }, [solvedIds, completeObjective]);
 
   const handleActivate = (hotspot: HotspotData) => {
     if (activeAction === "use") {
@@ -69,18 +75,16 @@ export function RoomScene() {
 
     markExamined(hotspot.id);
 
+    if (hotspot.id === "painting") completeObjective("examine-portrait");
+    if (hotspot.id === "desk")     completeObjective("search-desk");
+
     if (hotspot.puzzleId) {
       const def = PUZZLE_DEFINITIONS[hotspot.puzzleId];
       if (def) {
         openPuzzle(def);
-        if (hotspot.id === "clock") completeObjective("check-clock");
-        if (hotspot.id === "desk")  completeObjective("search-desk");
         return;
       }
     }
-
-    if (hotspot.id === "painting") completeObjective("examine-portrait");
-    if (hotspot.id === "desk")     completeObjective("search-desk");
 
     openInspect(hotspot);
   };
@@ -98,7 +102,6 @@ export function RoomScene() {
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <div className="w-full h-full relative">
           <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-stone-950/70 to-transparent" />
-
           <div className="absolute border border-amber-900/20 bg-amber-950/10 rounded-sm"
             style={{ left: "8%", top: "35%", width: "18%", height: "55%" }} />
           <div className="absolute border border-amber-900/10 bg-amber-950/5"
@@ -113,7 +116,6 @@ export function RoomScene() {
             <div className="w-full h-full border border-amber-900/20 bg-amber-950/10 rounded-sm" />
             <div className="absolute inset-2 border border-amber-900/10 rounded-sm opacity-50" />
           </div>
-
           <div className="absolute inset-x-0 bottom-0 h-4 border-t border-amber-900/15 bg-stone-950/50" />
           <div className="absolute inset-y-0 left-0 w-3 bg-gradient-to-r from-stone-950/60 to-transparent" />
           <div className="absolute inset-y-0 right-0 w-3 bg-gradient-to-l from-stone-950/60 to-transparent" />
@@ -133,19 +135,6 @@ export function RoomScene() {
             onActivate={handleActivate}
           />
         ))}
-      </div>
-
-      {/* Next room */}
-      <div className="absolute bottom-4 right-4 z-20">
-        <motion.button
-          whileHover={{ scale: 1.04 }}
-          whileTap={{ scale: 0.96 }}
-          onClick={() => triggerRoomTransition(() => {})}
-          className="flex items-center gap-1.5 rounded-sm border border-border/40 bg-card/70 px-3 py-1.5 font-serif text-[10px] uppercase tracking-widest text-muted-foreground backdrop-blur-md transition-all hover:border-primary/30 hover:text-primary"
-          data-testid="btn-next-room"
-        >
-          Next Room →
-        </motion.button>
       </div>
 
       {/* Active mode indicator */}

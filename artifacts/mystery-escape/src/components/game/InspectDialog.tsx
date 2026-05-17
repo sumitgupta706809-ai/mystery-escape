@@ -12,6 +12,7 @@ interface HotspotDetail {
 }
 
 const HOTSPOT_DETAILS: Record<string, HotspotDetail> = {
+  // ── Victorian Manor ──────────────────────────────────────────────────────
   desk: {
     flavor: "An ornate mahogany desk covered in scattered papers and a brass inkwell. A secret drawer sits slightly ajar beneath the main surface. The papers appear to be correspondence — letters referencing a combination.",
     canTake: false,
@@ -39,7 +40,36 @@ const HOTSPOT_DETAILS: Record<string, HotspotDetail> = {
     itemPreviewName: "Iron Ring",
   },
   safe: {
-    flavor: "A wall safe hidden behind a loose panel, now exposed. Its combination dial bears faint scratches suggesting it has been opened recently. It requires a 3-digit combination to open.",
+    flavor: "A wall safe hidden behind a loose panel, now exposed. Its combination dial bears faint scratches suggesting it has been opened recently. It requires a 4-digit combination to open.",
+    canTake: false,
+  },
+
+  // ── Underground Lab ───────────────────────────────────────────────────────
+  "lab-emergency-locker": {
+    flavor: "The emergency locker hangs open, its latch long since broken. Inside: a first-aid kit in pieces, empty battery compartments, and a faded laminated card reading 'EVACUATION ROUTE B'. Someone stripped this clean in a hurry. At the very back, wedged behind the inner panel, is a worn ID card.",
+    canTake: true,
+    itemId: "lab-access-card",
+    itemPreviewIcon: "🃏",
+    itemPreviewName: "Lab Access Card",
+  },
+  "lab-dark-corner": {
+    flavor: "A pitch-black corner where two walls meet below a burned-out strip light. The darkness is almost total. If only there were something to illuminate it — the markings might be legible.",
+    canTake: false,
+  },
+  "lab-filing-cabinet": {
+    flavor: "A heavy-gauge steel filing cabinet bolted to the floor. The drawers are locked with a combination mechanism — four digits, each on its own rotating wheel. The paint is scuffed and stained with something dark. Whatever is inside, someone wanted it secured.",
+    canTake: false,
+  },
+  "lab-specimen-shelf": {
+    flavor: "Metal shelving holding rows of specimen jars, most cracked or empty. Handwritten labels read: 'Compound 7 — UNSTABLE', 'Sample E-12 — INERT', 'DO NOT EXPOSE TO LIGHT'. One jar at the end still contains a faintly luminescent liquid that pulses with a slow, even rhythm.",
+    canTake: false,
+  },
+  "lab-broken-terminal": {
+    flavor: "A cracked terminal, the screen dark except for a slowly blinking power LED. The keyboard is intact. Above the monitor, stencilled in faded paint: three symbols in sequence — ⚡ · ◈ · △. The system appears to be waiting for a boot input before it will start up.",
+    canTake: false,
+  },
+  "lab-security-door": {
+    flavor: "A reinforced steel door with an electronic keypad and a card reader. A red light glows above the frame — locked. Stencilled warning text: 'AUTHORISED EXIT — ENTER OVERRIDE CODE'. The terminal, once restored, should transmit the emergency override sequence.",
     canTake: false,
   },
 };
@@ -47,16 +77,18 @@ const HOTSPOT_DETAILS: Record<string, HotspotDetail> = {
 export function InspectDialog() {
   const {
     inspectTarget, closeInspect, markExamined, completeObjective,
-    activeAction, takenIds, markTaken,
+    activeAction, takenIds, markTaken, roomId,
   } = useGame();
   const { addItem } = useInventory();
 
   const handleClose = () => {
     if (inspectTarget) {
       markExamined(inspectTarget.id);
-      if (inspectTarget.id === "desk")     completeObjective("search-desk");
-      if (inspectTarget.id === "painting") completeObjective("examine-portrait");
-      if (inspectTarget.id === "clock")    completeObjective("check-clock");
+      if (roomId === "victorian-manor") {
+        if (inspectTarget.id === "desk")     completeObjective("search-desk");
+        if (inspectTarget.id === "painting") completeObjective("examine-portrait");
+        if (inspectTarget.id === "clock")    completeObjective("check-clock");
+      }
     }
     closeInspect();
   };
@@ -74,6 +106,8 @@ export function InspectDialog() {
   const details = inspectTarget ? HOTSPOT_DETAILS[inspectTarget.id] : null;
   const alreadyTaken = inspectTarget ? takenIds.has(inspectTarget.id) : false;
   const canTakeNow = details?.canTake && !alreadyTaken;
+
+  const displayFlavor = details?.flavor ?? inspectTarget?.description;
 
   return (
     <AnimatePresence>
@@ -121,7 +155,7 @@ export function InspectDialog() {
 
               <div className="px-5 py-4">
                 <p className="font-serif text-sm text-foreground/75 leading-relaxed">
-                  {details?.flavor ?? inspectTarget.description}
+                  {displayFlavor}
                 </p>
 
                 {details?.canTake && (

@@ -2,52 +2,80 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FlaskConical, ChevronUp, ChevronDown } from "lucide-react";
 import { usePuzzle } from "@/contexts/PuzzleContext";
+import { useGame } from "@/contexts/GameContext";
 import type { PuzzleDefinition } from "@/puzzles/types";
 
-const DEMO_PUZZLES: PuzzleDefinition[] = [
+const MANOR_PUZZLES: PuzzleDefinition[] = [
   {
-    id: "demo-keypad",
+    id: "room-safe-keypad",
     type: "keypad",
-    title: "Combination Safe",
-    description: "The dial requires a 4-digit code. The clock hands hold the answer.",
-    config: {
-      digits: 4,
-      solution: "4811",
-      hint: "Roman numerals on the clock face: IV · VIII · XI — read as digits.",
-    },
+    title: "Wall Safe",
+    description: "The clock hands hold the answer.",
+    config: { digits: 4, solution: "1147", hint: "The clock is frozen at 11:47." },
   },
   {
-    id: "demo-symbol-match",
+    id: "room-bookcase-symbol",
     type: "symbol-match",
-    title: "Arcane Cipher",
-    description: "The symbols carved above the fireplace must be matched in exact order.",
+    title: "Arcane Bookcase",
+    description: "Match the carved symbols in order.",
     config: {
       pool: ["☽", "✦", "⚡", "⊕", "△", "◈", "♾", "⚗"],
       solution: ["☽", "⊕", "✦"],
-      hint: "The portrait's eyes trace a path — moon, circle, star.",
+      hint: "Moon, circle, star.",
     },
   },
   {
-    id: "demo-sequence-memory",
+    id: "room-clock-sequence",
     type: "sequence-memory",
-    title: "Pressure Plates",
-    description: "The floor tiles activate in a hidden sequence. Step on them in the correct order.",
-    config: {
-      gridSize: 3,
-      sequence: [0, 4, 2, 6, 8],
-      showMs: 700,
-      hint: "Watch carefully — the pattern repeats once before you must act.",
-    },
+    title: "Stopped Clock",
+    description: "Press the plates in the hidden sequence.",
+    config: { gridSize: 3, sequence: [0, 4, 2, 6, 8], showMs: 700, hint: "Watch carefully." },
   },
 ];
 
+const LAB_PUZZLES: PuzzleDefinition[] = [
+  {
+    id: "lab-cabinet-keypad",
+    type: "keypad",
+    title: "Filing Cabinet",
+    description: "4-digit combination lock.",
+    config: { digits: 4, solution: "4729", hint: "Numbers scratched near the dark corner: 4·7·2·9" },
+  },
+  {
+    id: "lab-terminal-symbol",
+    type: "symbol-match",
+    title: "Terminal Boot Sequence",
+    description: "Enter the boot symbols in order.",
+    config: {
+      pool: ["⚡", "◈", "△", "⊕", "☽", "♾", "⚗", "✦"],
+      solution: ["⚡", "◈", "△"],
+      hint: "Stencil above the monitor: ⚡ · ◈ · △",
+    },
+  },
+  {
+    id: "lab-door-keypad",
+    type: "keypad",
+    title: "Security Door",
+    description: "Emergency override code.",
+    config: { digits: 4, solution: "0372", hint: "Terminal displays: OVERRIDE — 03-72" },
+  },
+];
+
+const TYPE_LABELS: Record<string, string> = {
+  "keypad":          "Keypad",
+  "symbol-match":    "Symbol Match",
+  "sequence-memory": "Sequence Memory",
+};
+
 export function PuzzleDemoPanel() {
   const { openPuzzle, solvedIds } = usePuzzle();
+  const { roomId } = useGame();
   const [open, setOpen] = useState(false);
+
+  const puzzles = roomId === "underground-lab" ? LAB_PUZZLES : MANOR_PUZZLES;
 
   return (
     <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30" data-testid="puzzle-demo-panel">
-      {/* Trigger */}
       <motion.button
         onClick={() => setOpen((v) => !v)}
         whileHover={{ scale: 1.04 }}
@@ -63,7 +91,6 @@ export function PuzzleDemoPanel() {
         }
       </motion.button>
 
-      {/* Panel */}
       <AnimatePresence>
         {open && (
           <motion.div
@@ -73,20 +100,18 @@ export function PuzzleDemoPanel() {
             transition={{ type: "spring", stiffness: 380, damping: 26 }}
             className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-64 rounded-sm border border-border/50 bg-card/98 shadow-[0_-8px_32px_rgba(0,0,0,0.6)] backdrop-blur-md overflow-hidden"
           >
-            <div className="border-b border-border/30 px-3 py-2">
+            <div className="border-b border-border/30 px-3 py-2 flex items-center justify-between">
               <p className="font-serif text-[9px] uppercase tracking-widest text-muted-foreground/40">
                 Puzzle Engine — Demo
+              </p>
+              <p className="font-serif text-[9px] text-muted-foreground/30 uppercase tracking-widest">
+                {roomId === "underground-lab" ? "Lab" : "Manor"}
               </p>
             </div>
 
             <div className="flex flex-col py-1">
-              {DEMO_PUZZLES.map((def) => {
+              {puzzles.map((def) => {
                 const solved = solvedIds.has(def.id);
-                const typeLabels: Record<string, string> = {
-                  "keypad":          "Keypad",
-                  "symbol-match":    "Symbol Match",
-                  "sequence-memory": "Sequence Memory",
-                };
                 return (
                   <motion.button
                     key={def.id}
@@ -102,7 +127,7 @@ export function PuzzleDemoPanel() {
                     <div className="flex-1 min-w-0">
                       <p className="font-serif text-xs text-foreground/85 truncate">{def.title}</p>
                       <p className="font-serif text-[9px] text-muted-foreground/50 uppercase tracking-wider">
-                        {typeLabels[def.type]}
+                        {TYPE_LABELS[def.type]}
                       </p>
                     </div>
                     <div className={`h-2 w-2 rounded-full shrink-0 ${solved ? "bg-emerald-400/70" : "bg-border/40"}`} />

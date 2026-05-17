@@ -5,6 +5,7 @@ import { GameProvider, useGame, type ActionMode } from "@/contexts/GameContext";
 import { InventoryProvider } from "@/contexts/InventoryContext";
 import { PuzzleProvider } from "@/contexts/PuzzleContext";
 import { RoomScene } from "@/components/game/RoomScene";
+import { LabScene } from "@/components/game/LabScene";
 import { InventoryBar } from "@/components/game/InventoryBar";
 import { GameHUD } from "@/components/game/GameHUD";
 import { PauseMenu } from "@/components/game/PauseMenu";
@@ -13,6 +14,7 @@ import { RoomTransition } from "@/components/game/RoomTransition";
 import { UseFeedbackToast } from "@/components/game/UseFeedbackToast";
 import { PuzzleDemoPanel } from "@/components/game/PuzzleDemoPanel";
 import { PuzzleModal } from "@/puzzles/PuzzleModal";
+import { VictoryScreen } from "@/components/game/VictoryScreen";
 import { cn } from "@/lib/utils";
 
 const ACTIONS: { id: ActionMode; label: string; icon: typeof Search; description: string }[] = [
@@ -58,7 +60,7 @@ function ActionBar() {
 }
 
 function GameLayout() {
-  const { setPaused } = useGame();
+  const { setPaused, roomId } = useGame();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -78,7 +80,7 @@ function GameLayout() {
       data-testid="game-page"
     >
       <div className="relative flex-1 min-h-0">
-        <RoomScene />
+        {roomId === "victorian-manor" ? <RoomScene /> : <LabScene />}
         <GameHUD />
         <PuzzleDemoPanel />
       </div>
@@ -91,6 +93,7 @@ function GameLayout() {
       <RoomTransition />
       <UseFeedbackToast />
       <PuzzleModal />
+      <VictoryScreen />
     </motion.div>
   );
 }

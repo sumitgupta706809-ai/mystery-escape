@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback } from "react";
+import { ROOM_META, type RoomId } from "@/rooms/index";
 
 export type ActionMode = "examine" | "take" | "use" | "combine";
 
@@ -39,27 +40,26 @@ interface GameContextValue {
   isTransitioning: boolean;
   triggerRoomTransition: (cb: () => void) => void;
   currentRoom: string;
+  roomId: RoomId;
+  switchRoom: (id: RoomId) => void;
 }
 
 const GameContext = createContext<GameContextValue | null>(null);
 
-const INITIAL_OBJECTIVES: Objective[] = [
-  { id: "search-desk",     text: "Search the antique desk",    completed: false },
-  { id: "examine-portrait",text: "Examine the faded portrait", completed: false },
-  { id: "check-clock",     text: "Inspect the stopped clock",  completed: false },
-  { id: "find-hidden",     text: "Find the hidden passage",    completed: false },
-];
+function makeObjectives(roomId: RoomId): Objective[] {
+  return ROOM_META[roomId].objectives.map((o) => ({ ...o, completed: false }));
+}
 
 export function GameProvider({ children }: { children: React.ReactNode }) {
+  const [roomId, setRoomId] = useState<RoomId>("victorian-manor");
   const [activeAction, setActiveAction] = useState<ActionMode>("examine");
   const [paused, setPaused] = useState(false);
   const [hintsRemaining, setHintsRemaining] = useState(3);
-  const [objectives, setObjectives] = useState<Objective[]>(INITIAL_OBJECTIVES);
+  const [objectives, setObjectives] = useState<Objective[]>(() => makeObjectives("victorian-manor"));
   const [inspectTarget, setInspectTarget] = useState<HotspotData | null>(null);
   const [examinedIds, setExaminedIds] = useState<Set<string>>(new Set());
   const [takenIds, setTakenIds] = useState<Set<string>>(new Set());
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [currentRoom] = useState("The Victorian Manor");
 
   const useHint = useCallback(() => {
     setHintsRemaining((h) => Math.max(0, h - 1));
@@ -93,6 +93,18 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }, 700);
   }, []);
 
+  const switchRoom = useCallback((id: RoomId) => {
+    setRoomId(id);
+    setActiveAction("examine");
+    setExaminedIds(new Set());
+    setTakenIds(new Set());
+    setObjectives(makeObjectives(id));
+    setHintsRemaining(3);
+    setInspectTarget(null);
+  }, []);
+
+  const currentRoom = ROOM_META[roomId]?.name ?? "Unknown Room";
+
   return (
     <GameContext.Provider value={{
       activeAction, setActiveAction,
@@ -104,6 +116,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       takenIds, markTaken,
       isTransitioning, triggerRoomTransition,
       currentRoom,
+      roomId, switchRoom,
     }}>
       {children}
     </GameContext.Provider>
