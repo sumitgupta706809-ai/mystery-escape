@@ -4,6 +4,7 @@ import { Search, Hand, Zap, Combine } from "lucide-react";
 import { GameProvider, useGame, type ActionMode } from "@/contexts/GameContext";
 import { InventoryProvider } from "@/contexts/InventoryContext";
 import { PuzzleProvider } from "@/contexts/PuzzleContext";
+import { StoryProvider } from "@/contexts/StoryContext";
 import { RoomScene } from "@/components/game/RoomScene";
 import { LabScene } from "@/components/game/LabScene";
 import { InventoryBar } from "@/components/game/InventoryBar";
@@ -15,6 +16,7 @@ import { UseFeedbackToast } from "@/components/game/UseFeedbackToast";
 import { PuzzleDemoPanel } from "@/components/game/PuzzleDemoPanel";
 import { PuzzleModal } from "@/puzzles/PuzzleModal";
 import { VictoryScreen } from "@/components/game/VictoryScreen";
+import { NarrativePopup } from "@/components/game/NarrativePopup";
 import { cn } from "@/lib/utils";
 
 const ACTIONS: { id: ActionMode; label: string; icon: typeof Search; description: string }[] = [
@@ -26,7 +28,6 @@ const ACTIONS: { id: ActionMode; label: string; icon: typeof Search; description
 
 function ActionBar() {
   const { activeAction, setActiveAction } = useGame();
-
   return (
     <div className="flex items-center justify-center gap-1.5 px-4 py-2 border-t border-border/30 bg-card/60 backdrop-blur-md">
       {ACTIONS.map(({ id, label, icon: Icon, description }) => (
@@ -48,7 +49,6 @@ function ActionBar() {
           <span className="hidden sm:inline">{label}</span>
         </motion.button>
       ))}
-
       <div className="ml-auto hidden lg:flex items-center gap-2 pl-3 border-l border-border/30">
         <span className="font-serif text-[9px] uppercase tracking-widest text-muted-foreground/50">Mode:</span>
         <span className="font-serif text-[10px] text-primary/70 uppercase tracking-widest">
@@ -94,6 +94,7 @@ function GameLayout() {
       <UseFeedbackToast />
       <PuzzleModal />
       <VictoryScreen />
+      <NarrativePopup />
     </motion.div>
   );
 }
@@ -103,7 +104,9 @@ export default function Game() {
     <GameProvider>
       <InventoryProvider>
         <PuzzleProvider>
-          <GameLayout />
+          <StoryProvider>
+            <GameLayout />
+          </StoryProvider>
         </PuzzleProvider>
       </InventoryProvider>
     </GameProvider>

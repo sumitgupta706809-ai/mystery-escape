@@ -1,10 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { InteractionMarker } from "@/components/game/InteractionMarker";
 import { AtmosphericOverlay } from "@/components/game/AtmosphericOverlay";
 import { useGame, type HotspotData } from "@/contexts/GameContext";
 import { useInventory } from "@/contexts/InventoryContext";
 import { usePuzzle } from "@/contexts/PuzzleContext";
+import { useStory } from "@/contexts/StoryContext";
 import type { PuzzleDefinition } from "@/puzzles/types";
 
 const HOTSPOTS: HotspotData[] = [
@@ -22,11 +23,7 @@ const PUZZLE_DEFINITIONS: Record<string, PuzzleDefinition> = {
     type: "keypad",
     title: "Wall Safe",
     description: "A combination lock seals the safe. The clock hands hold the secret.",
-    config: {
-      digits: 4,
-      solution: "1147",
-      hint: "The clock is frozen at 11:47 — read the hands as digits.",
-    },
+    config: { digits: 4, solution: "1147", hint: "The clock is frozen at 11:47 — read the hands as digits." },
   },
   "room-bookcase-symbol": {
     id: "room-bookcase-symbol",
@@ -44,12 +41,7 @@ const PUZZLE_DEFINITIONS: Record<string, PuzzleDefinition> = {
     type: "sequence-memory",
     title: "Stopped Clock",
     description: "Pressing the clock's face plates in a hidden order will wind the mechanism.",
-    config: {
-      gridSize: 3,
-      sequence: [0, 4, 2, 6, 8],
-      showMs: 700,
-      hint: "Watch carefully — the pattern repeats once before you must act.",
-    },
+    config: { gridSize: 3, sequence: [0, 4, 2, 6, 8], showMs: 700, hint: "Watch carefully — the pattern repeats once before you must act." },
   },
 };
 
@@ -57,11 +49,32 @@ export function RoomScene() {
   const { openInspect, examinedIds, markExamined, activeAction, completeObjective } = useGame();
   const { selectedSlot, selectedItem, useItem } = useInventory();
   const { openPuzzle, solvedIds } = usePuzzle();
+  const { triggerBeat } = useStory();
+  const firstExamineRef = useRef(false);
+  const solvedCountRef = useRef(0);
 
+  // Manor start
   useEffect(() => {
+    const t = setTimeout(() => triggerBeat("manor-start"), 3200);
+    return () => clearTimeout(t);
+  }, [triggerBeat]);
+
+  // Puzzle-solve beats
+  useEffect(() => {
+    const nowSolved = ["room-safe-keypad", "room-bookcase-symbol", "room-clock-sequence"]
+      .filter(id => solvedIds.has(id)).length;
+
+    if (nowSolved > solvedCountRef.current) {
+      if (nowSolved === 1) triggerBeat("manor-first-puzzle-solved");
+      if (solvedIds.has("room-bookcase-symbol")) triggerBeat("manor-bookcase-solved");
+      if (solvedIds.has("room-safe-keypad"))     triggerBeat("manor-safe-solved");
+      if (nowSolved === 3)                        triggerBeat("manor-all-solved");
+      solvedCountRef.current = nowSolved;
+    }
+
     if (solvedIds.has("room-safe-keypad"))    completeObjective("find-hidden");
     if (solvedIds.has("room-clock-sequence")) completeObjective("check-clock");
-  }, [solvedIds, completeObjective]);
+  }, [solvedIds, completeObjective, triggerBeat]);
 
   const handleActivate = (hotspot: HotspotData) => {
     if (activeAction === "use") {
@@ -73,10 +86,19 @@ export function RoomScene() {
       return;
     }
 
+    // First examine ever
+    if (!firstExamineRef.current) {
+      firstExamineRef.current = true;
+      setTimeout(() => triggerBeat("manor-first-examine"), 600);
+    }
+
     markExamined(hotspot.id);
 
-    if (hotspot.id === "painting") completeObjective("examine-portrait");
-    if (hotspot.id === "desk")     completeObjective("search-desk");
+    if (hotspot.id === "painting") {
+      completeObjective("examine-portrait");
+      setTimeout(() => triggerBeat("manor-portrait-examined"), 400);
+    }
+    if (hotspot.id === "desk") completeObjective("search-desk");
 
     if (hotspot.puzzleId) {
       const def = PUZZLE_DEFINITIONS[hotspot.puzzleId];
@@ -94,11 +116,9 @@ export function RoomScene() {
       className="relative w-full h-full overflow-hidden bg-zinc-950 select-none"
       data-testid="room-scene"
     >
-      {/* Background gradients */}
       <div className="absolute inset-0 bg-gradient-to-b from-amber-950/25 via-stone-950/50 to-zinc-950/90" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_55%_at_48%_38%,rgba(160,100,30,0.12)_0%,transparent_75%)]" />
 
-      {/* Room geometry */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <div className="w-full h-full relative">
           <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-stone-950/70 to-transparent" />
@@ -124,7 +144,6 @@ export function RoomScene() {
 
       <AtmosphericOverlay />
 
-      {/* Hotspot markers */}
       <div className="absolute inset-0 z-20">
         {HOTSPOTS.map((spot) => (
           <InteractionMarker
@@ -137,7 +156,6 @@ export function RoomScene() {
         ))}
       </div>
 
-      {/* Active mode indicator */}
       <div className="absolute bottom-4 left-4 z-20">
         <AnimatePresence>
           {activeAction !== "examine" && (
@@ -159,7 +177,6 @@ export function RoomScene() {
         </AnimatePresence>
       </div>
 
-      {/* Object counter */}
       <div className="absolute top-4 right-4 z-20">
         <div className="rounded-sm border border-border/30 bg-card/50 px-2.5 py-1 backdrop-blur-sm">
           <p className="font-serif text-[10px] uppercase tracking-widest text-muted-foreground/60">

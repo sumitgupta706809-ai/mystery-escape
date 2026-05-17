@@ -1,9 +1,10 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { InteractionMarker } from "@/components/game/InteractionMarker";
 import { useGame, type HotspotData } from "@/contexts/GameContext";
 import { useInventory } from "@/contexts/InventoryContext";
 import { usePuzzle } from "@/contexts/PuzzleContext";
+import { useStory } from "@/contexts/StoryContext";
 import type { PuzzleDefinition } from "@/puzzles/types";
 
 const LAB_HOTSPOTS: HotspotData[] = [
@@ -21,11 +22,7 @@ const LAB_PUZZLES: Record<string, PuzzleDefinition> = {
     type: "keypad",
     title: "Filing Cabinet",
     description: "A 4-digit combination lock secures the cabinet. Someone hid a code nearby.",
-    config: {
-      digits: 4,
-      solution: "4729",
-      hint: "Numbers scratched into the concrete near the dark corner: 4 · 7 · 2 · 9",
-    },
+    config: { digits: 4, solution: "4729", hint: "Numbers scratched into the concrete near the dark corner: 4 · 7 · 2 · 9" },
   },
   "lab-terminal-symbol": {
     id: "lab-terminal-symbol",
@@ -43,11 +40,7 @@ const LAB_PUZZLES: Record<string, PuzzleDefinition> = {
     type: "keypad",
     title: "Security Door",
     description: "The exit requires a 4-digit override code. The restored terminal should have it.",
-    config: {
-      digits: 4,
-      solution: "0372",
-      hint: "The terminal scrolls: EMERGENCY OVERRIDE — 03-72",
-    },
+    config: { digits: 4, solution: "0372", hint: "The terminal scrolls: EMERGENCY OVERRIDE — 03-72" },
   },
 };
 
@@ -56,7 +49,6 @@ function FlickerLights() {
 
   useEffect(() => {
     let timeout: ReturnType<typeof setTimeout>;
-
     const flicker = () => {
       const rand = Math.random();
       if (rand < 0.12) {
@@ -82,7 +74,6 @@ function FlickerLights() {
         timeout = setTimeout(flicker, 300 + Math.random() * 900);
       }
     };
-
     timeout = setTimeout(flicker, 2000 + Math.random() * 1500);
     return () => clearTimeout(timeout);
   }, []);
@@ -106,24 +97,17 @@ function FlickerLights() {
 function LabGeometry() {
   return (
     <div className="absolute inset-0 pointer-events-none">
-      {/* Floor */}
       <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-slate-950/80 to-transparent" />
       <div className="absolute bottom-0 left-0 right-0 h-[2px] border-t border-cyan-900/20" />
-
-      {/* Left bank of lockers */}
       <div className="absolute border border-cyan-900/25 bg-slate-900/30 rounded-sm"
         style={{ left: "3%", top: "35%", width: "16%", height: "55%" }} />
       <div className="absolute border-t border-cyan-900/15" style={{ left: "3%", top: "52%", width: "16%", height: "1px" }} />
       <div className="absolute border-t border-cyan-900/15" style={{ left: "3%", top: "69%", width: "16%", height: "1px" }} />
       <div className="absolute w-[3px] bg-cyan-800/20 rounded-full" style={{ left: "10.5%", top: "42%", height: "12%" }} />
       <div className="absolute w-[3px] bg-cyan-800/20 rounded-full" style={{ left: "10.5%", top: "59%", height: "12%" }} />
-
-      {/* Central lab bench */}
       <div className="absolute border border-cyan-900/20 bg-slate-900/20 rounded-sm"
         style={{ left: "30%", top: "62%", width: "28%", height: "28%" }} />
-      <div className="absolute border-l border-cyan-900/10 h-full" style={{ left: "44%", top: "62%", width: "1px", height: "28%" }} />
-
-      {/* Right terminal station */}
+      <div className="absolute border-l border-cyan-900/10" style={{ left: "44%", top: "62%", width: "1px", height: "28%" }} />
       <div className="absolute border border-emerald-900/30 bg-slate-900/40 rounded-sm shadow-[0_0_20px_rgba(34,197,94,0.05)]"
         style={{ right: "10%", top: "32%", width: "18%", height: "50%" }} />
       <div className="absolute border border-emerald-800/20 bg-emerald-950/30 rounded-sm"
@@ -131,26 +115,18 @@ function LabGeometry() {
       <div className="absolute animate-pulse" style={{ right: "18%", top: "60%", width: "4%", height: "3px" }}>
         <div className="w-full h-full bg-emerald-400/50 rounded-full blur-[1px]" />
       </div>
-
-      {/* Security door on the far right */}
       <div className="absolute border border-red-900/30 bg-slate-950/60 rounded-sm"
         style={{ right: "2%", top: "28%", width: "9%", height: "65%" }} />
       <div className="absolute border border-red-900/20" style={{ right: "3.5%", top: "30%", width: "6%", height: "60%" }} />
       <div className="absolute rounded-full bg-red-500/50 shadow-[0_0_8px_rgba(239,68,68,0.5)]"
         style={{ right: "5.5%", top: "47%", width: "6px", height: "6px" }} />
-
-      {/* Ceiling pipes / conduit */}
       <div className="absolute inset-x-0 top-0 h-[8%] bg-gradient-to-b from-slate-950 to-transparent" />
       <div className="absolute border-b border-cyan-900/15 top-[8%] inset-x-0 h-[1px]" />
       <div className="absolute h-[6%] border-r border-cyan-900/15" style={{ left: "25%", top: "0", width: "1px" }} />
       <div className="absolute h-[6%] border-r border-cyan-900/15" style={{ left: "55%", top: "0", width: "1px" }} />
       <div className="absolute h-[6%] border-r border-cyan-900/15" style={{ left: "80%", top: "0", width: "1px" }} />
-
-      {/* Left / right edge vignette */}
       <div className="absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-slate-950/60 to-transparent" />
       <div className="absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-slate-950/60 to-transparent" />
-
-      {/* Caution stripe on floor */}
       <div className="absolute bottom-[6%] left-[18%] right-[18%] h-[3px] bg-gradient-to-r from-transparent via-yellow-600/15 to-transparent" />
     </div>
   );
@@ -158,15 +134,33 @@ function LabGeometry() {
 
 export function LabScene() {
   const { openInspect, examinedIds, markExamined, activeAction, completeObjective } = useGame();
-  const { selectedSlot, selectedItem, useItem, setFeedback } = useInventory() as any;
+  const { selectedSlot, selectedItem, useItem } = useInventory();
   const { openPuzzle, solvedIds } = usePuzzle();
+  const { triggerBeat } = useStory();
   const [cornerRevealed, setCornerRevealed] = useState(false);
+  const solvedCountRef = useRef(0);
 
+  // Lab enter beat
   useEffect(() => {
+    const t = setTimeout(() => triggerBeat("lab-enter"), 1800);
+    return () => clearTimeout(t);
+  }, [triggerBeat]);
+
+  // Puzzle-solve beats
+  useEffect(() => {
+    const nowSolved = ["lab-cabinet-keypad", "lab-terminal-symbol", "lab-door-keypad"]
+      .filter(id => solvedIds.has(id)).length;
+
+    if (nowSolved > solvedCountRef.current) {
+      if (solvedIds.has("lab-cabinet-keypad")) triggerBeat("lab-cabinet-solved");
+      if (solvedIds.has("lab-terminal-symbol")) triggerBeat("lab-terminal-solved");
+      solvedCountRef.current = nowSolved;
+    }
+
     if (solvedIds.has("lab-cabinet-keypad")) completeObjective("open-cabinet");
     if (solvedIds.has("lab-terminal-symbol")) completeObjective("restore-terminal");
     if (solvedIds.has("lab-door-keypad"))    completeObjective("unlock-door");
-  }, [solvedIds, completeObjective]);
+  }, [solvedIds, completeObjective, triggerBeat]);
 
   const handleActivate = useCallback((hotspot: HotspotData) => {
     if (activeAction === "use") {
@@ -179,10 +173,11 @@ export function LabScene() {
         markExamined("lab-dark-corner");
         completeObjective("reveal-code");
         useItem(selectedSlot, "lab-dark-corner");
+        setTimeout(() => triggerBeat("lab-corner-revealed"), 900);
         openInspect({
           ...hotspot,
           label: "Dark Corner — Revealed",
-          description: "The flashlight cuts through the dark. Numbers are scratched deep into the concrete: 4 · 7 · 2 · 9",
+          description: "The flashlight cuts through the dark. Numbers scratched deep into the concrete: 4 · 7 · 2 · 9",
         });
         return;
       }
@@ -207,6 +202,9 @@ export function LabScene() {
     if (hotspot.puzzleId) {
       const def = LAB_PUZZLES[hotspot.puzzleId];
       if (def) {
+        if (hotspot.id === "lab-security-door") {
+          triggerBeat("lab-door-opened");
+        }
         openPuzzle(def);
         return;
       }
@@ -214,9 +212,8 @@ export function LabScene() {
 
     openInspect(hotspot);
   }, [
-    activeAction, selectedItem, selectedSlot,
-    cornerRevealed, openInspect, openPuzzle,
-    markExamined, useItem, completeObjective,
+    activeAction, selectedItem, selectedSlot, cornerRevealed,
+    openInspect, openPuzzle, markExamined, useItem, completeObjective, triggerBeat,
   ]);
 
   return (
@@ -224,17 +221,14 @@ export function LabScene() {
       className="relative w-full h-full overflow-hidden bg-slate-950 select-none"
       data-testid="lab-scene"
     >
-      {/* Background */}
       <div className="absolute inset-0 bg-gradient-to-b from-slate-900/40 via-slate-950/70 to-slate-950" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_76%_55%,rgba(34,197,94,0.04)_0%,transparent_70%)]" />
 
       <LabGeometry />
       <FlickerLights />
 
-      {/* Static atmospheric noise */}
       <div className="absolute inset-0 opacity-[0.025] bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%224%22 height=%224%22><rect width=%222%22 height=%222%22 fill=%22white%22/><rect x=%222%22 y=%222%22 width=%222%22 height=%222%22 fill=%22white%22/></svg>')] pointer-events-none" />
 
-      {/* Hotspot markers */}
       <div className="absolute inset-0 z-20">
         {LAB_HOTSPOTS.map((spot) => (
           <InteractionMarker
@@ -251,7 +245,6 @@ export function LabScene() {
         ))}
       </div>
 
-      {/* Active mode indicator */}
       <div className="absolute bottom-4 left-4 z-20">
         <AnimatePresence>
           {activeAction !== "examine" && (
@@ -273,7 +266,6 @@ export function LabScene() {
         </AnimatePresence>
       </div>
 
-      {/* Terminal glow pulse when solved */}
       {solvedIds.has("lab-terminal-symbol") && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -286,7 +278,6 @@ export function LabScene() {
         </motion.div>
       )}
 
-      {/* Object counter */}
       <div className="absolute top-4 right-4 z-20">
         <div className="rounded-sm border border-cyan-900/40 bg-card/50 px-2.5 py-1 backdrop-blur-sm">
           <p className="font-serif text-[10px] uppercase tracking-widest text-cyan-400/50">
