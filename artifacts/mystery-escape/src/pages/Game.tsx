@@ -9,6 +9,7 @@ import { GameHUD } from "@/components/game/GameHUD";
 import { PauseMenu } from "@/components/game/PauseMenu";
 import { InspectDialog } from "@/components/game/InspectDialog";
 import { RoomTransition } from "@/components/game/RoomTransition";
+import { UseFeedbackToast } from "@/components/game/UseFeedbackToast";
 import { cn } from "@/lib/utils";
 
 const ACTIONS: { id: ActionMode; label: string; icon: typeof Search; description: string }[] = [
@@ -84,6 +85,7 @@ function GameLayout() {
       <InspectDialog />
       <PauseMenu />
       <RoomTransition />
+      <UseFeedbackToast />
     </motion.div>
   );
 }

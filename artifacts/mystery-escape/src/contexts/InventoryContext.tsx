@@ -1,11 +1,12 @@
-import { createContext, useContext, useState, useCallback, useRef } from "react";
-import { type ItemDefinition, createItemInstance, STARTING_ITEMS, getItem } from "@/data/items";
+import { createContext, useContext, useState, useCallback, useEffect } from "react";
+import { type ItemDefinition, createItemInstance, STARTING_ITEMS } from "@/data/items";
 
 export const TOTAL_SLOTS = 10;
+const STORAGE_KEY = "mystery-escape-inventory-v1";
 
-export interface InventorySlotData {
-  slotIndex: number;
-  item: ItemDefinition | null;
+export interface UseFeedback {
+  type: "success" | "error";
+  message: string;
 }
 
 interface UseResult {
@@ -34,27 +35,51 @@ interface InventoryContextValue {
   dropItem: (slotIndex: number) => void;
   lastPickup: ItemDefinition | null;
   clearLastPickup: () => void;
+  feedback: UseFeedback | null;
+  clearFeedback: () => void;
   useLog: string[];
 }
 
 const InventoryContext = createContext<InventoryContextValue | null>(null);
 
-function buildInitialSlots(): (ItemDefinition | null)[] {
-  const slots: (ItemDefinition | null)[] = Array(TOTAL_SLOTS).fill(null);
+function loadSlots(): (ItemDefinition | null)[] {
+  const empty = Array<ItemDefinition | null>(TOTAL_SLOTS).fill(null);
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const ids: (string | null)[] = JSON.parse(raw);
+      if (Array.isArray(ids) && ids.length === TOTAL_SLOTS) {
+        return ids.map((id) => (id ? createItemInstance(id) : null));
+      }
+    }
+  } catch {
+    /* ignore corrupt storage */
+  }
   STARTING_ITEMS.forEach((id, i) => {
-    if (i < TOTAL_SLOTS) slots[i] = createItemInstance(id);
+    if (i < TOTAL_SLOTS) empty[i] = createItemInstance(id);
   });
-  return slots;
+  return empty;
+}
+
+function saveSlots(slots: (ItemDefinition | null)[]) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(slots.map((s) => s?.id ?? null)));
+  } catch { /* storage full or unavailable */ }
 }
 
 export function InventoryProvider({ children }: { children: React.ReactNode }) {
-  const [slots, setSlots] = useState<(ItemDefinition | null)[]>(buildInitialSlots);
+  const [slots, setSlots] = useState<(ItemDefinition | null)[]>(loadSlots);
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
   const [dragSlot, setDragSlot] = useState<number | null>(null);
   const [lastPickup, setLastPickup] = useState<ItemDefinition | null>(null);
+  const [feedback, setFeedback] = useState<UseFeedback | null>(null);
   const [useLog, setUseLog] = useState<string[]>([]);
 
   const selectedItem = selectedSlot !== null ? slots[selectedSlot] : null;
+
+  useEffect(() => {
+    saveSlots(slots);
+  }, [slots]);
 
   const log = useCallback((msg: string) => {
     setUseLog((prev) => [msg, ...prev].slice(0, 20));
@@ -109,11 +134,27 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
   const useItem = useCallback((slotIndex: number, targetId: string): UseResult => {
     const item = slots[slotIndex];
     if (!item) return { success: false, message: "No item in that slot." };
+
     if (!item.usableOn.includes(targetId)) {
-      return { success: false, message: `The ${item.name} doesn't seem to work on that.` };
+      const msg = `The ${item.name} doesn't seem to work here.`;
+      setFeedback({ type: "error", message: msg });
+      return { success: false, message: msg };
     }
-    log(`Used ${item.name} on ${targetId}: ${item.useEffect ?? "Nothing happened."}`);
-    return { success: true, message: item.useEffect ?? "You use the item." };
+
+    const msg = item.useEffect ?? "You use the item.";
+    setFeedback({ type: "success", message: msg });
+    log(`Used ${item.name} on ${targetId}`);
+
+    if (item.consumeOnUse) {
+      setSlots((prev) => {
+        const next = [...prev];
+        next[slotIndex] = null;
+        return next;
+      });
+      setSelectedSlot((prev) => (prev === slotIndex ? null : prev));
+    }
+
+    return { success: true, message: msg };
   }, [slots, log]);
 
   const combineItems = useCallback((slotA: number, slotB: number): CombineResult => {
@@ -124,11 +165,15 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
 
     const canCombine = itemA.combinesWith.includes(itemB.id) || itemB.combinesWith.includes(itemA.id);
     if (!canCombine) {
-      return { success: false, message: `The ${itemA.name} and ${itemB.name} don't combine.` };
+      const msg = `The ${itemA.name} and ${itemB.name} don't combine.`;
+      setFeedback({ type: "error", message: msg });
+      return { success: false, message: msg };
     }
 
-    log(`Combined ${itemA.name} + ${itemB.name} → Lit Candle`);
-    return { success: true, message: `You combine the ${itemA.name} and ${itemB.name} together.`, resultItemId: "lit-candle" };
+    const msg = `You combine the ${itemA.name} and ${itemB.name}.`;
+    setFeedback({ type: "success", message: msg });
+    log(`Combined ${itemA.name} + ${itemB.name}`);
+    return { success: true, message: msg };
   }, [slots, log]);
 
   const dropItem = useCallback((slotIndex: number) => {
@@ -138,16 +183,17 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
     removeItem(slotIndex);
   }, [slots, removeItem, log]);
 
-  const clearLastPickup = useCallback(() => {
-    setLastPickup(null);
-  }, []);
+  const clearLastPickup = useCallback(() => setLastPickup(null), []);
+  const clearFeedback = useCallback(() => setFeedback(null), []);
 
   return (
     <InventoryContext.Provider value={{
       slots, selectedSlot, selectedItem, dragSlot, setDragSlot,
       selectSlot, addItem, removeItem, swapSlots,
       useItem, combineItems, dropItem,
-      lastPickup, clearLastPickup, useLog,
+      lastPickup, clearLastPickup,
+      feedback, clearFeedback,
+      useLog,
     }}>
       {children}
     </InventoryContext.Provider>

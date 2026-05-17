@@ -1,0 +1,183 @@
+1. Item Add Test
+
+Check:
+
+Can items appear in inventory?
+Does clicking an object add item correctly?
+
+Example:
+
+Click flashlight
+flashlight should appear in inventory bar
+
+✅ Expected:
+Item instantly appears without page refresh.
+
+2. Item Remove Test
+
+Check:
+
+Can used items disappear properly?
+
+Example:
+
+Use key on door
+key removed OR marked used
+
+✅ Expected:
+No duplicate items remain.
+
+3. Item Selection Test
+
+Check:
+
+clicking inventory item highlights/selects it
+only one item selected at a time
+
+✅ Expected:
+Selected item visually glows or changes border.
+
+4. Drag & Drop Test
+
+If drag-drop exists:
+
+Check:
+
+item can move smoothly
+no lag
+mobile touch works too
+
+✅ Expected:
+No weird jumping or disappearing items.
+
+5. Item Description Popup
+
+Check:
+
+clicking inspect shows description
+popup closes properly
+
+Example:
+
+“Old flashlight with weak batteries.”
+
+✅ Expected:
+Popup smooth and readable.
+
+6. Item Usage Test
+
+VERY IMPORTANT.
+
+Check:
+
+selected item interacts with room objects correctly
+
+Example:
+
+use screwdriver on vent
+use keycard on terminal
+
+✅ Expected:
+Correct action triggers.
+
+❌ Bad:
+Any item works everywhere.
+
+7. Wrong Item Handling
+
+Check:
+
+wrong items show proper message
+
+Example:
+
+“This doesn’t fit here.”
+
+✅ Expected:
+No crashes or frozen UI.
+
+8. Inventory Persistence
+
+Refresh page.
+
+Check:
+
+items remain saved
+
+✅ Expected:
+Inventory restores correctly.
+
+If not added yet:
+that’s okay temporarily before Supabase integration.
+
+9. Mobile Responsiveness
+
+Open mobile preview.
+
+Check:
+
+inventory fits screen
+items clickable by thumb
+no overlap
+
+✅ Expected:
+Usable on small screens.
+
+10. Animation Smoothness
+
+Check:
+
+item pickup animation
+hover effects
+popup transitions
+
+✅ Expected:
+Feels polished, not laggy.
+
+11. Console Errors
+
+VERY IMPORTANT.
+
+Open browser console.
+
+Look for:
+
+red errors
+warnings
+undefined values
+
+✅ Expected:
+No major errors.
+
+12. Edge Cases
+
+Test weird behavior:
+
+spam clicking
+clicking very fast
+selecting multiple items rapidly
+
+✅ Expected:
+System remains stable.
+
+MOST IMPORTANT THING
+
+Inventory systems become the backbone of escape games.
+
+If inventory breaks:
+
+puzzles break
+progression breaks
+saves break
+
+So fix inventory issues BEFORE moving to puzzles.
+
+Green Signal Before Step 4
+
+Only continue if:
+✅ add/remove works
+✅ item selection works
+✅ no UI breaking
+✅ no console errors
+✅ mobile works
+✅ interactions feel smooth

@@ -1,8 +1,17 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Eye, Hand, Zap } from "lucide-react";
+import { X, Eye, Hand, Zap, CheckCheck } from "lucide-react";
 import { useGame } from "@/contexts/GameContext";
+import { useInventory } from "@/contexts/InventoryContext";
 
-const HOTSPOT_DETAILS: Record<string, { flavor: string; canTake?: boolean; itemName?: string; itemIcon?: string }> = {
+interface HotspotDetail {
+  flavor: string;
+  canTake?: boolean;
+  itemId?: string;
+  itemPreviewIcon?: string;
+  itemPreviewName?: string;
+}
+
+const HOTSPOT_DETAILS: Record<string, HotspotDetail> = {
   desk: {
     flavor: "An ornate mahogany desk covered in scattered papers and a brass inkwell. A secret drawer sits slightly ajar beneath the main surface. The papers appear to be correspondence — letters referencing a combination.",
     canTake: false,
@@ -10,8 +19,9 @@ const HOTSPOT_DETAILS: Record<string, { flavor: string; canTake?: boolean; itemN
   painting: {
     flavor: "A faded oil portrait of a stern-faced Victorian gentleman in a dark coat. His eyes are unsettling — painted in such a way they seem to follow you. Behind the frame, a small folded note is tucked.",
     canTake: true,
-    itemName: "Folded Note",
-    itemIcon: "📋",
+    itemId: "painting-note",
+    itemPreviewIcon: "📋",
+    itemPreviewName: "Folded Note",
   },
   clock: {
     flavor: "A grandfather clock frozen at 11:47. The pendulum hangs completely motionless, as if time itself holds its breath in this room. The numerals on the face are Roman — IV, VIII, XI. The number 11:47 feels important.",
@@ -24,8 +34,9 @@ const HOTSPOT_DETAILS: Record<string, { flavor: string; canTake?: boolean; itemN
   fireplace: {
     flavor: "A cold hearth with long-dead embers. A brass poker leans against the stonework. Among the ashes, something metallic catches your eye — it seems to have survived the fire.",
     canTake: true,
-    itemName: "Iron Ring",
-    itemIcon: "⭕",
+    itemId: "fireplace-ring",
+    itemPreviewIcon: "⭕",
+    itemPreviewName: "Iron Ring",
   },
   safe: {
     flavor: "A wall safe hidden behind a loose panel, now exposed. Its combination dial bears faint scratches suggesting it has been opened recently. It requires a 3-digit combination to open.",
@@ -34,14 +45,18 @@ const HOTSPOT_DETAILS: Record<string, { flavor: string; canTake?: boolean; itemN
 };
 
 export function InspectDialog() {
-  const { inspectTarget, closeInspect, markExamined, completeObjective, addItem, activeAction } = useGame();
+  const {
+    inspectTarget, closeInspect, markExamined, completeObjective,
+    activeAction, takenIds, markTaken,
+  } = useGame();
+  const { addItem } = useInventory();
 
   const handleClose = () => {
     if (inspectTarget) {
       markExamined(inspectTarget.id);
-      if (inspectTarget.id === "desk") completeObjective("search-desk");
+      if (inspectTarget.id === "desk")     completeObjective("search-desk");
       if (inspectTarget.id === "painting") completeObjective("examine-portrait");
-      if (inspectTarget.id === "clock") completeObjective("check-clock");
+      if (inspectTarget.id === "clock")    completeObjective("check-clock");
     }
     closeInspect();
   };
@@ -49,18 +64,16 @@ export function InspectDialog() {
   const handleTake = () => {
     if (!inspectTarget) return;
     const details = HOTSPOT_DETAILS[inspectTarget.id];
-    if (details?.canTake && details.itemName && details.itemIcon) {
-      addItem({
-        id: `${inspectTarget.id}-item`,
-        icon: details.itemIcon,
-        name: details.itemName,
-        description: `Found near the ${inspectTarget.label.toLowerCase()}.`,
-      });
+    if (details?.canTake && details.itemId && !takenIds.has(inspectTarget.id)) {
+      const added = addItem(details.itemId);
+      if (added) markTaken(inspectTarget.id);
     }
     handleClose();
   };
 
   const details = inspectTarget ? HOTSPOT_DETAILS[inspectTarget.id] : null;
+  const alreadyTaken = inspectTarget ? takenIds.has(inspectTarget.id) : false;
+  const canTakeNow = details?.canTake && !alreadyTaken;
 
   return (
     <AnimatePresence>
@@ -84,6 +97,7 @@ export function InspectDialog() {
             data-testid="inspect-dialog"
           >
             <div className="rounded-sm border border-primary/25 bg-card/98 shadow-[0_0_60px_rgba(0,0,0,0.8)] overflow-hidden">
+
               <div className="flex items-start justify-between gap-3 border-b border-border/50 px-5 py-4">
                 <div className="flex items-center gap-3">
                   <div className="flex h-9 w-9 items-center justify-center rounded-sm border border-primary/20 bg-primary/5">
@@ -109,17 +123,32 @@ export function InspectDialog() {
                 <p className="font-serif text-sm text-foreground/75 leading-relaxed">
                   {details?.flavor ?? inspectTarget.description}
                 </p>
+
+                {details?.canTake && (
+                  <div className="mt-3 flex items-center gap-2.5 rounded-sm border border-border/30 bg-secondary/20 px-3 py-2">
+                    <span className="text-lg leading-none">{details.itemPreviewIcon}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-serif text-xs text-foreground/80">{details.itemPreviewName}</p>
+                      <p className="font-serif text-[10px] text-muted-foreground/60">
+                        {alreadyTaken ? "Already taken" : "Can be picked up"}
+                      </p>
+                    </div>
+                    {alreadyTaken && (
+                      <CheckCheck className="h-4 w-4 text-emerald-400/60 shrink-0" strokeWidth={1.5} />
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-2 border-t border-border/40 px-5 py-3">
-                {details?.canTake && (
+                {canTakeNow && (
                   <button
                     onClick={handleTake}
                     className="flex items-center gap-1.5 rounded-sm border border-primary/30 bg-primary/10 px-3 py-2 font-serif text-xs uppercase tracking-widest text-primary transition-all hover:bg-primary hover:text-primary-foreground"
                     data-testid="btn-take-item"
                   >
                     <Hand className="h-3 w-3" strokeWidth={1.5} />
-                    Take
+                    Take {details?.itemPreviewName}
                   </button>
                 )}
                 <button
@@ -138,6 +167,7 @@ export function InspectDialog() {
                   Step Back
                 </button>
               </div>
+
             </div>
           </motion.div>
         </>

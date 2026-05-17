@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { motion } from "framer-motion";
 import { useInventory } from "@/contexts/InventoryContext";
 import { RARITY_CONFIG, type ItemDefinition } from "@/data/items";
@@ -23,60 +23,76 @@ export function InventorySlot({
   isDragTarget,
   onDragTargetEnter,
   onDragTargetLeave,
-  onDrop,
 }: InventorySlotProps) {
   const { selectSlot, setDragSlot } = useInventory();
   const rarity = item ? RARITY_CONFIG[item.rarity] : null;
-  const isDragging = useRef(false);
+
+  // Track whether the current gesture is a drag (moved > threshold) or a click
+  const isDraggingRef = useRef(false);
+  const pointerStartRef = useRef({ x: 0, y: 0 });
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    pointerStartRef.current = { x: e.clientX, y: e.clientY };
+    isDraggingRef.current = false;
+  };
 
   const handleDragStart = () => {
-    if (!item) return;
-    isDragging.current = true;
+    isDraggingRef.current = true;
     setDragSlot(slotIndex);
   };
 
   const handleDragEnd = () => {
-    isDragging.current = false;
     setDragSlot(null);
+    // Brief delay so click handler can check isDraggingRef before it resets
+    setTimeout(() => { isDraggingRef.current = false; }, 50);
   };
 
   const handleClick = () => {
-    if (isDragging.current) return;
-    selectSlot(item ? slotIndex : null);
+    if (isDraggingRef.current) return;
+    if (item) selectSlot(slotIndex);
   };
 
   return (
-    <motion.div
-      className="relative"
+    <div
+      className="relative shrink-0"
       style={{ width: 54, height: 54 }}
       data-slot-index={slotIndex}
       onMouseEnter={() => onDragTargetEnter(slotIndex)}
       onMouseLeave={onDragTargetLeave}
     >
-      {/* Drop target highlight */}
+      {/* Drop-target ring */}
       <div
         className={cn(
           "absolute inset-0 rounded-sm border-2 border-dashed transition-all duration-150 pointer-events-none z-20",
-          isDragTarget
-            ? "border-primary/60 bg-primary/10 scale-105"
-            : "border-transparent"
+          isDragTarget ? "border-primary/60 bg-primary/10" : "border-transparent"
         )}
       />
 
-      {/* Slot base */}
-      <motion.button
+      {/* Unified draggable + clickable tile */}
+      <motion.div
+        drag={!!item}
+        dragMomentum={false}
+        dragElastic={0.12}
+        dragSnapToOrigin
+        onPointerDown={handlePointerDown}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
         onClick={handleClick}
         whileHover={item ? { scale: 1.06 } : {}}
-        whileTap={item ? { scale: 0.92 } : {}}
+        whileTap={item && !isDraggingRef.current ? { scale: 0.92 } : {}}
+        whileDrag={{ scale: 1.18, zIndex: 100, opacity: 0.88, cursor: "grabbing" }}
+        animate={isDragSource ? { opacity: 0.35, scale: 0.9 } : { opacity: 1, scale: 1 }}
         className={cn(
-          "absolute inset-0 rounded-sm border flex flex-col items-center justify-center gap-0.5 transition-all duration-200 overflow-hidden",
+          "absolute inset-0 rounded-sm border flex flex-col items-center justify-center gap-0.5",
+          "transition-colors duration-200 overflow-hidden",
           item
             ? isSelected
               ? cn("bg-primary/15", rarity?.border ?? "border-primary/50", rarity?.glow ?? "")
-              : cn("bg-secondary/30 hover:bg-secondary/50", rarity?.border ?? "border-border/50")
-            : "border-dashed border-border/20 bg-transparent",
-          isDragSource && "opacity-40 scale-95"
+              : cn("bg-secondary/30 hover:bg-secondary/50 cursor-grab", rarity?.border ?? "border-border/50")
+            : "border-dashed border-border/20 bg-transparent cursor-default",
+          isDragSource && "pointer-events-none"
         )}
+        style={{ touchAction: "none" }}
         data-testid={`inv-slot-${slotIndex}`}
         title={item?.name}
       >
@@ -86,6 +102,8 @@ export function InventorySlot({
             <span className="text-[7px] text-muted-foreground/70 truncate w-full text-center px-1 leading-none font-sans">
               {item.shortName}
             </span>
+
+            {/* Selected indicator dot */}
             {isSelected && (
               <motion.div
                 layoutId="inv-selected-dot"
@@ -93,39 +111,21 @@ export function InventorySlot({
                 transition={{ type: "spring", stiffness: 500 }}
               />
             )}
+
+            {/* Rarity underline */}
             {item.rarity !== "common" && (
               <div className={cn(
-                "absolute bottom-0.5 left-1/2 -translate-x-1/2 h-0.5 w-4 rounded-full opacity-60",
+                "absolute bottom-0.5 left-1/2 -translate-x-1/2 h-0.5 w-4 rounded-full opacity-70",
                 item.rarity === "uncommon" && "bg-emerald-400",
-                item.rarity === "rare" && "bg-primary",
-                item.rarity === "legendary" && "bg-violet-400",
+                item.rarity === "rare"     && "bg-primary",
+                item.rarity === "legendary"&& "bg-violet-400",
               )} />
             )}
           </>
         ) : (
           <div className="h-3 w-3 rounded-full border border-border/15" />
         )}
-      </motion.button>
-
-      {/* Draggable ghost — only mounted when item exists */}
-      {item && (
-        <motion.div
-          drag
-          dragMomentum={false}
-          dragElastic={0.15}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-          whileDrag={{ scale: 1.18, zIndex: 100, opacity: 0.9, cursor: "grabbing" }}
-          className={cn(
-            "absolute inset-0 rounded-sm flex items-center justify-center cursor-grab z-10",
-            "bg-transparent"
-          )}
-          style={{ touchAction: "none" }}
-          data-testid={`inv-drag-${slotIndex}`}
-        >
-          <span className="text-xl select-none pointer-events-none">{item.icon}</span>
-        </motion.div>
-      )}
-    </motion.div>
+      </motion.div>
+    </div>
   );
 }

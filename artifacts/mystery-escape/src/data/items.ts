@@ -13,15 +13,16 @@ export interface ItemDefinition {
   usableOn: string[];
   combinesWith: string[];
   useEffect?: string;
+  consumeOnUse?: boolean;
   stackable?: boolean;
   maxStack?: number;
 }
 
 export const RARITY_CONFIG: Record<ItemRarity, { label: string; color: string; glow: string; border: string }> = {
-  common:    { label: "Common",    color: "text-muted-foreground",   glow: "",                                        border: "border-border/50" },
-  uncommon:  { label: "Uncommon",  color: "text-emerald-400/80",     glow: "shadow-[0_0_10px_rgba(52,211,153,0.15)]", border: "border-emerald-700/40" },
-  rare:      { label: "Rare",      color: "text-primary/90",         glow: "shadow-[0_0_12px_rgba(224,153,30,0.2)]",  border: "border-primary/40" },
-  legendary: { label: "Legendary", color: "text-violet-400/90",      glow: "shadow-[0_0_16px_rgba(167,139,250,0.25)]",border: "border-violet-600/40" },
+  common:    { label: "Common",    color: "text-muted-foreground",   glow: "",                                         border: "border-border/50" },
+  uncommon:  { label: "Uncommon",  color: "text-emerald-400/80",     glow: "shadow-[0_0_10px_rgba(52,211,153,0.15)]",  border: "border-emerald-700/40" },
+  rare:      { label: "Rare",      color: "text-primary/90",         glow: "shadow-[0_0_12px_rgba(224,153,30,0.2)]",   border: "border-primary/40" },
+  legendary: { label: "Legendary", color: "text-violet-400/90",      glow: "shadow-[0_0_16px_rgba(167,139,250,0.25)]", border: "border-violet-600/40" },
 };
 
 export const ITEM_REGISTRY: Record<string, ItemDefinition> = {
@@ -37,6 +38,7 @@ export const ITEM_REGISTRY: Record<string, ItemDefinition> = {
     usableOn: ["lockbox", "drawer-lock"],
     combinesWith: [],
     useEffect: "You insert the key into the lock. It turns with a satisfying click.",
+    consumeOnUse: true,
   },
   "old-letter": {
     id: "old-letter",
@@ -49,7 +51,7 @@ export const ITEM_REGISTRY: Record<string, ItemDefinition> = {
     tags: ["document"],
     usableOn: ["safe", "combination-lock"],
     combinesWith: [],
-    useEffect: "You read the numbers aloud: four, eight, eleven.",
+    useEffect: "You read the numbers aloud: four, eight, eleven. The safe clicks open.",
   },
   "candle": {
     id: "candle",
@@ -88,7 +90,8 @@ export const ITEM_REGISTRY: Record<string, ItemDefinition> = {
     tags: ["key", "electronic"],
     usableOn: ["card-reader", "security-door", "server-room"],
     combinesWith: [],
-    useEffect: "The reader beeps twice. A green light. The door clicks open.",
+    useEffect: "The reader beeps twice. A green light flashes. The door clicks open.",
+    consumeOnUse: false,
   },
   "screwdriver": {
     id: "screwdriver",
@@ -103,6 +106,32 @@ export const ITEM_REGISTRY: Record<string, ItemDefinition> = {
     combinesWith: ["wire"],
     useEffect: "You apply leverage. The screws give way with a reluctant groan.",
   },
+  "painting-note": {
+    id: "painting-note",
+    icon: "📋",
+    name: "Folded Note",
+    shortName: "Note",
+    description: "A folded note tucked behind the portrait frame. The handwriting is frantic.",
+    examineText: "'They know about the laboratory. Destroy the evidence before midnight. The vent leads to the server room — use the screwdriver.' — unsigned.",
+    rarity: "common",
+    tags: ["document"],
+    usableOn: ["safe", "bookcase"],
+    combinesWith: [],
+    useEffect: "You read the note carefully, committing the instructions to memory.",
+  },
+  "fireplace-ring": {
+    id: "fireplace-ring",
+    icon: "⭕",
+    name: "Iron Ring",
+    shortName: "Ring",
+    description: "A scorched iron ring recovered from the ashes. Something connects to this.",
+    examineText: "The ring is heavy and blackened from fire, but intact. On the inside face, barely legible: 'H.R.I. — Experiment 7'. It may fit something in this room.",
+    rarity: "uncommon",
+    tags: ["key", "mechanical"],
+    usableOn: ["bookcase", "hidden-panel"],
+    combinesWith: [],
+    useEffect: "The ring slots into place with a satisfying click. Something shifts in the wall.",
+  },
   "matches": {
     id: "matches",
     icon: "🔥",
@@ -115,6 +144,7 @@ export const ITEM_REGISTRY: Record<string, ItemDefinition> = {
     usableOn: ["fireplace", "candle"],
     combinesWith: ["candle"],
     useEffect: "You strike the match. It flares to life with a warm, sulfurous smell.",
+    consumeOnUse: true,
   },
   "wire": {
     id: "wire",
