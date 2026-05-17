@@ -152,7 +152,7 @@ export function RoomScene() {
       <div className="absolute top-4 right-4 z-20">
         <div className="rounded-sm border border-border/30 bg-card/50 px-2.5 py-1 backdrop-blur-sm">
           <p className="font-serif text-[10px] uppercase tracking-widest text-muted-foreground/60">
-            {HOTSPOTS.length} objects · {HOTSPOTS.filter(h => examinedIds.has(h.id)).size ?? [...examinedIds].filter(id => HOTSPOTS.some(h => h.id === id)).length} examined
+            {HOTSPOTS.length} objects · {HOTSPOTS.filter(h => examinedIds.has(h.id)).length} examined
           </p>
         </div>
       </div>
