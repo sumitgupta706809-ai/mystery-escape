@@ -1,11 +1,15 @@
-import { Pause, Lightbulb, KeyRound } from "lucide-react";
+import { Pause, Lightbulb, KeyRound, Trophy } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useGame } from "@/contexts/GameContext";
 import { usePuzzle } from "@/contexts/PuzzleContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { ObjectiveTracker } from "@/components/game/ObjectiveTracker";
+import { UserMenu } from "@/components/auth/UserMenu";
+import { LeaderboardModal } from "@/components/game/LeaderboardModal";
 import { ROOM_META } from "@/rooms/index";
 import { cn } from "@/lib/utils";
+import { api } from "@/lib/api";
 
 const HINTS_DATA = [
   "Look carefully at the objects on the desk — one has a hidden compartment beneath the surface.",
@@ -15,7 +19,7 @@ const HINTS_DATA = [
 
 const LAB_HINTS_DATA = [
   "The emergency locker on the left wall may have been left open in the evacuation.",
-  "UV markings glow in darkness — your flashlight beam might reveal them. Try USE mode on the dark corner.",
+  "UV markings glow in darkness — try USE mode with the Flashlight on the dark corner.",
   "The terminal's boot sequence is stencilled above the monitor. The door code will appear once power is restored.",
 ];
 
@@ -25,19 +29,26 @@ function formatTime(s: number) {
   return `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
 }
 
-export function GameHUD() {
+interface GameHUDProps {
+  onOpenAuth: () => void;
+}
+
+export function GameHUD({ onOpenAuth }: GameHUDProps) {
   const { setPaused, hintsRemaining, useHint, currentRoom, roomId } = useGame();
   const { solvedIds } = usePuzzle();
+  const { user } = useAuth();
   const [seconds, setSeconds] = useState(3600);
   const [hintOpen, setHintOpen] = useState(false);
   const [revealedHints, setRevealedHints] = useState<number[]>([]);
+  const [leaderboardOpen, setLeaderboardOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const isLowTime = seconds <= 60;
 
   const roomMeta = ROOM_META[roomId as keyof typeof ROOM_META];
   const roomPuzzleCount = roomMeta?.puzzleIds.length ?? 3;
   const solvedCount = roomMeta?.puzzleIds.filter((id) => solvedIds.has(id)).length ?? 0;
   const allSolved = solvedCount === roomPuzzleCount;
-
   const hintsData = roomId === "underground-lab" ? LAB_HINTS_DATA : HINTS_DATA;
 
   useEffect(() => {
@@ -46,7 +57,6 @@ export function GameHUD() {
     return () => clearInterval(id);
   }, [seconds]);
 
-  // Reset timer on room change
   useEffect(() => {
     setSeconds(3600);
     setRevealedHints([]);
@@ -60,21 +70,35 @@ export function GameHUD() {
     }
   };
 
+  const handleSave = async () => {
+    if (!user || isSaving) return;
+    setIsSaving(true);
+    try {
+      await api.save.push({
+        roomId,
+        secondsElapsed: 3600 - seconds,
+        hintsUsed: 3 - hintsRemaining,
+        solvedPuzzleIds: Array.from(solvedIds),
+        inventoryItemIds: [],
+      });
+      setLastSaved(new Date());
+    } catch {}
+    finally { setIsSaving(false); }
+  };
+
   return (
-    <div
-      className="absolute inset-x-0 top-0 z-20 flex items-center justify-between gap-4 px-4 py-3"
-      data-testid="game-hud"
-    >
+    <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between gap-4 px-4 py-3" data-testid="game-hud">
+
+      {/* Left: room + objectives */}
       <div className="flex items-center gap-3">
         <div className="rounded-sm border border-border/40 bg-card/70 px-3 py-1.5 backdrop-blur-md">
-          <p className="font-serif text-[9px] uppercase tracking-widest text-muted-foreground/60 leading-none mb-0.5">
-            Room
-          </p>
+          <p className="font-serif text-[9px] uppercase tracking-widest text-muted-foreground/60 leading-none mb-0.5">Room</p>
           <p className="font-serif text-xs text-foreground/90">{currentRoom}</p>
         </div>
         <ObjectiveTracker />
       </div>
 
+      {/* Center: timer */}
       <div className="flex items-center justify-center">
         <motion.div
           animate={isLowTime ? { opacity: [1, 0.4, 1] } : { opacity: 1 }}
@@ -91,8 +115,9 @@ export function GameHUD() {
         </motion.div>
       </div>
 
+      {/* Right: puzzle count, hints, leaderboard, user, pause */}
       <div className="flex items-center gap-2">
-        {/* Puzzle progress — room-aware */}
+        {/* Puzzle progress */}
         <motion.div
           key={`${roomId}-${solvedCount}`}
           initial={solvedCount > 0 ? { scale: 1.2, opacity: 0 } : false}
@@ -134,7 +159,6 @@ export function GameHUD() {
               {hintsRemaining}
             </span>
           </button>
-
           <AnimatePresence>
             {hintOpen && (
               <motion.div
@@ -160,7 +184,6 @@ export function GameHUD() {
                           "rounded-sm border p-2.5 transition-all",
                           isRevealed ? "border-primary/15 bg-primary/5" : "border-border/30 bg-secondary/20"
                         )}
-                        data-testid={`hint-item-${i}`}
                       >
                         <div className="flex items-start gap-2">
                           <span className="font-serif text-[10px] text-primary/40 shrink-0 mt-px">{i + 1}.</span>
@@ -174,7 +197,6 @@ export function GameHUD() {
                                 "text-xs transition-colors",
                                 canReveal ? "text-primary/70 hover:text-primary cursor-pointer" : "text-muted-foreground/30 cursor-not-allowed"
                               )}
-                              data-testid={`btn-reveal-hint-${i}`}
                             >
                               {canReveal ? "Tap to reveal hint" : i < revealedHints.length ? "Revealed" : "Reveal previous hint first"}
                             </button>
@@ -189,6 +211,25 @@ export function GameHUD() {
           </AnimatePresence>
         </div>
 
+        {/* Leaderboard */}
+        <button
+          onClick={() => setLeaderboardOpen(true)}
+          className="flex h-9 w-9 items-center justify-center rounded-sm border border-border/40 bg-card/70 text-muted-foreground backdrop-blur-md transition-all hover:border-primary/30 hover:text-primary"
+          title="Leaderboard"
+          data-testid="btn-leaderboard"
+        >
+          <Trophy className="h-4 w-4" strokeWidth={1.5} />
+        </button>
+
+        {/* User menu / auth */}
+        <UserMenu
+          onOpenAuth={onOpenAuth}
+          onSave={user ? handleSave : undefined}
+          isSaving={isSaving}
+          lastSaved={lastSaved}
+        />
+
+        {/* Pause */}
         <button
           onClick={() => setPaused(true)}
           className="flex h-9 w-9 items-center justify-center rounded-sm border border-border/40 bg-card/70 text-muted-foreground backdrop-blur-md transition-all hover:border-primary/30 hover:text-primary"
@@ -197,6 +238,12 @@ export function GameHUD() {
           <Pause className="h-4 w-4" strokeWidth={1.5} />
         </button>
       </div>
+
+      <LeaderboardModal
+        open={leaderboardOpen}
+        onClose={() => setLeaderboardOpen(false)}
+        defaultRoom={roomId}
+      />
     </div>
   );
 }

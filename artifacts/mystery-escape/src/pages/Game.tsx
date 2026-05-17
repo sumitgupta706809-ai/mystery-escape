@@ -1,10 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { Search, Hand, Zap, Combine } from "lucide-react";
 import { GameProvider, useGame, type ActionMode } from "@/contexts/GameContext";
-import { InventoryProvider } from "@/contexts/InventoryContext";
-import { PuzzleProvider } from "@/contexts/PuzzleContext";
+import { InventoryProvider, useInventory } from "@/contexts/InventoryContext";
+import { PuzzleProvider, usePuzzle } from "@/contexts/PuzzleContext";
 import { StoryProvider } from "@/contexts/StoryContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { RoomScene } from "@/components/game/RoomScene";
 import { LabScene } from "@/components/game/LabScene";
 import { InventoryBar } from "@/components/game/InventoryBar";
@@ -17,6 +18,8 @@ import { PuzzleDemoPanel } from "@/components/game/PuzzleDemoPanel";
 import { PuzzleModal } from "@/puzzles/PuzzleModal";
 import { VictoryScreen } from "@/components/game/VictoryScreen";
 import { NarrativePopup } from "@/components/game/NarrativePopup";
+import { AuthModal } from "@/components/auth/AuthModal";
+import { useSaveGame } from "@/hooks/useSaveGame";
 import { cn } from "@/lib/utils";
 
 const ACTIONS: { id: ActionMode; label: string; icon: typeof Search; description: string }[] = [
@@ -59,8 +62,41 @@ function ActionBar() {
   );
 }
 
+function SaveManager() {
+  const { roomId, hintsRemaining } = useGame();
+  const { solvedIds } = usePuzzle();
+  const { slots } = useInventory() as any;
+  const secondsRef = useRef(0);
+  const hintsUsedRef = useRef(0);
+
+  // Track elapsed time
+  useEffect(() => {
+    const id = setInterval(() => { secondsRef.current += 1; }, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Track hints used (3 - remaining)
+  useEffect(() => {
+    hintsUsedRef.current = 3 - hintsRemaining;
+  }, [hintsRemaining]);
+
+  const getPayload = useCallback(() => ({
+    roomId,
+    secondsElapsed: secondsRef.current,
+    hintsUsed: hintsUsedRef.current,
+    solvedPuzzleIds: Array.from(solvedIds),
+    inventoryItemIds: (slots as any[])
+      .filter((s: any) => s?.item)
+      .map((s: any) => s.item.id),
+  }), [roomId, solvedIds, slots]);
+
+  useSaveGame(getPayload);
+  return null;
+}
+
 function GameLayout() {
   const { setPaused, roomId } = useGame();
+  const [authOpen, setAuthOpen] = useState(false);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -81,7 +117,7 @@ function GameLayout() {
     >
       <div className="relative flex-1 min-h-0">
         {roomId === "victorian-manor" ? <RoomScene /> : <LabScene />}
-        <GameHUD />
+        <GameHUD onOpenAuth={() => setAuthOpen(true)} />
         <PuzzleDemoPanel />
       </div>
 
@@ -95,20 +131,24 @@ function GameLayout() {
       <PuzzleModal />
       <VictoryScreen />
       <NarrativePopup />
+      <SaveManager />
+      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
     </motion.div>
   );
 }
 
 export default function Game() {
   return (
-    <GameProvider>
-      <InventoryProvider>
-        <PuzzleProvider>
-          <StoryProvider>
-            <GameLayout />
-          </StoryProvider>
-        </PuzzleProvider>
-      </InventoryProvider>
-    </GameProvider>
+    <AuthProvider>
+      <GameProvider>
+        <InventoryProvider>
+          <PuzzleProvider>
+            <StoryProvider>
+              <GameLayout />
+            </StoryProvider>
+          </PuzzleProvider>
+        </InventoryProvider>
+      </GameProvider>
+    </AuthProvider>
   );
 }
