@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Search, Hand, Zap, Combine } from "lucide-react";
 import { GameProvider, useGame, type ActionMode } from "@/contexts/GameContext";
+import { InventoryProvider } from "@/contexts/InventoryContext";
 import { RoomScene } from "@/components/game/RoomScene";
 import { InventoryBar } from "@/components/game/InventoryBar";
 import { GameHUD } from "@/components/game/GameHUD";
@@ -12,9 +13,9 @@ import { cn } from "@/lib/utils";
 
 const ACTIONS: { id: ActionMode; label: string; icon: typeof Search; description: string }[] = [
   { id: "examine", label: "Examine", icon: Search, description: "Look closely at objects" },
-  { id: "take", label: "Take", icon: Hand, description: "Pick up items" },
-  { id: "use", label: "Use", icon: Zap, description: "Use selected item" },
-  { id: "combine", label: "Combine", icon: Combine, description: "Combine two items" },
+  { id: "take",    label: "Take",    icon: Hand,   description: "Pick up items" },
+  { id: "use",     label: "Use",     icon: Zap,    description: "Use selected item" },
+  { id: "combine", label: "Combine", icon: Combine,description: "Combine two items" },
 ];
 
 function ActionBar() {
@@ -43,9 +44,7 @@ function ActionBar() {
       ))}
 
       <div className="ml-auto hidden lg:flex items-center gap-2 pl-3 border-l border-border/30">
-        <span className="font-serif text-[9px] uppercase tracking-widest text-muted-foreground/50">
-          Active:
-        </span>
+        <span className="font-serif text-[9px] uppercase tracking-widest text-muted-foreground/50">Mode:</span>
         <span className="font-serif text-[10px] text-primary/70 uppercase tracking-widest">
           {ACTIONS.find(a => a.id === activeAction)?.label}
         </span>
@@ -92,7 +91,9 @@ function GameLayout() {
 export default function Game() {
   return (
     <GameProvider>
-      <GameLayout />
+      <InventoryProvider>
+        <GameLayout />
+      </InventoryProvider>
     </GameProvider>
   );
 }
