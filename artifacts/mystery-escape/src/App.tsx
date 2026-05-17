@@ -28,9 +28,9 @@ function Router() {
 
 function AppContent() {
   const [isLoading, setIsLoading] = useState(true);
+  const [showApp, setShowApp] = useState(false);
 
   useEffect(() => {
-    // Show loading screen for 2.5s on initial mount
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 2500);
@@ -39,10 +39,10 @@ function AppContent() {
 
   return (
     <>
-      <AnimatePresence>
+      <AnimatePresence onExitComplete={() => setShowApp(true)}>
         {isLoading && <LoadingScreen />}
       </AnimatePresence>
-      <Router />
+      {showApp && <Router />}
     </>
   );
 }

@@ -22,12 +22,12 @@ export default function Landing() {
       <Navbar />
 
       <main className="container mx-auto px-4 pt-24 pb-16">
-        <section className="flex flex-col items-center justify-center py-20 text-center">
+        <section className="flex flex-col items-center justify-center py-10 sm:py-20 text-center">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2, duration: 0.8 }}
-            className="mb-8 relative"
+            className="mb-6 relative"
           >
             <div className="absolute -inset-x-8 -inset-y-8 bg-primary/5 blur-3xl rounded-full" />
             <h1 className="font-serif text-5xl sm:text-7xl md:text-8xl text-foreground drop-shadow-sm">
@@ -39,7 +39,7 @@ export default function Landing() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
-            className="mb-12 max-w-2xl text-lg text-muted-foreground sm:text-xl font-light tracking-wide"
+            className="mb-8 max-w-2xl text-base sm:text-lg text-muted-foreground font-light tracking-wide px-4"
           >
             Step into the darkness. Solve the puzzles. Escape the room. 
             An atmospheric point-and-click experience awaits those brave enough to enter.
