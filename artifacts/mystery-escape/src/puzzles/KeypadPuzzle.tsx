@@ -51,7 +51,6 @@ export function KeypadPuzzle({ config, onSolve, onFail, alreadySolved }: Props) 
     }
   }, [entry, solution, digits, attempts, locked, onSolve, onFail]);
 
-  // Keyboard support
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key >= "0" && e.key <= "9") press(e.key);
@@ -65,7 +64,7 @@ export function KeypadPuzzle({ config, onSolve, onFail, alreadySolved }: Props) 
   const displayDigits = Array.from({ length: digits }).map((_, i) => entry[i] ?? null);
 
   return (
-    <div className="flex flex-col items-center gap-6 px-2" data-testid="keypad-puzzle">
+    <div className="flex flex-col items-center gap-5 px-1" data-testid="keypad-puzzle">
       {hint && (
         <p className="font-serif text-[11px] text-muted-foreground/60 text-center italic leading-relaxed max-w-xs">
           {hint}
@@ -76,7 +75,7 @@ export function KeypadPuzzle({ config, onSolve, onFail, alreadySolved }: Props) 
       <motion.div
         animate={shake ? { x: [-8, 8, -6, 6, -3, 3, 0] } : { x: 0 }}
         transition={{ duration: 0.45 }}
-        className="flex gap-3"
+        className="flex gap-2 sm:gap-3"
       >
         {displayDigits.map((d, i) => (
           <motion.div
@@ -94,7 +93,7 @@ export function KeypadPuzzle({ config, onSolve, onFail, alreadySolved }: Props) 
                 : "transparent",
             }}
             className={cn(
-              "flex h-14 w-11 items-center justify-center rounded-sm border-2 font-mono text-2xl font-bold text-foreground transition-colors",
+              "flex h-12 w-10 sm:h-14 sm:w-11 items-center justify-center rounded-sm border-2 font-mono text-xl sm:text-2xl font-bold text-foreground transition-colors",
               locked && d !== null && "border-emerald-500/60 text-emerald-400"
             )}
           >
@@ -104,17 +103,18 @@ export function KeypadPuzzle({ config, onSolve, onFail, alreadySolved }: Props) 
       </motion.div>
 
       {/* Attempts remaining */}
-      {attempts > 0 && !locked && (
-        <AnimatePresence>
+      <AnimatePresence>
+        {attempts > 0 && !locked && (
           <motion.p
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
-            className="font-serif text-[10px] uppercase tracking-widest text-destructive/60"
+            exit={{ opacity: 0, y: -4 }}
+            className="font-serif text-[10px] uppercase tracking-widest text-destructive/60 -mt-2"
           >
             {MAX_ATTEMPTS - attempts} attempt{MAX_ATTEMPTS - attempts !== 1 ? "s" : ""} remaining
           </motion.p>
-        </AnimatePresence>
-      )}
+        )}
+      </AnimatePresence>
 
       {/* Number grid */}
       <div className="grid grid-cols-3 gap-2">
@@ -125,42 +125,48 @@ export function KeypadPuzzle({ config, onSolve, onFail, alreadySolved }: Props) 
             whileHover={{ scale: 1.08, backgroundColor: "rgba(224,153,30,0.12)" }}
             whileTap={{ scale: 0.9 }}
             disabled={locked}
-            className="flex h-13 w-13 items-center justify-center rounded-sm border border-border/40 bg-secondary/20 font-mono text-lg text-foreground/80 transition-colors disabled:opacity-40"
+            className="flex items-center justify-center rounded-sm border border-border/40 bg-secondary/20 font-mono text-lg text-foreground/80 transition-colors disabled:opacity-40 touch-manipulation"
             style={{ width: 52, height: 52 }}
             data-testid={`key-${d}`}
           >
             {d}
           </motion.button>
         ))}
+
+        {/* Backspace */}
         <motion.button
           onClick={backspace}
           whileHover={{ scale: 1.08 }}
           whileTap={{ scale: 0.9 }}
           disabled={locked}
-          className="flex h-13 w-13 items-center justify-center rounded-sm border border-border/30 bg-secondary/10 text-muted-foreground/60 transition-colors disabled:opacity-40"
+          className="flex items-center justify-center rounded-sm border border-border/30 bg-secondary/10 text-muted-foreground/60 transition-colors disabled:opacity-40 touch-manipulation"
           style={{ width: 52, height: 52 }}
           data-testid="key-backspace"
         >
           <Delete className="h-4 w-4" strokeWidth={1.5} />
         </motion.button>
+
+        {/* 0 */}
         <motion.button
           onClick={() => press("0")}
           whileHover={{ scale: 1.08, backgroundColor: "rgba(224,153,30,0.12)" }}
           whileTap={{ scale: 0.9 }}
           disabled={locked}
-          className="flex h-13 w-13 items-center justify-center rounded-sm border border-border/40 bg-secondary/20 font-mono text-lg text-foreground/80 transition-colors disabled:opacity-40"
+          className="flex items-center justify-center rounded-sm border border-border/40 bg-secondary/20 font-mono text-lg text-foreground/80 transition-colors disabled:opacity-40 touch-manipulation"
           style={{ width: 52, height: 52 }}
           data-testid="key-0"
         >
           0
         </motion.button>
+
+        {/* Submit */}
         <motion.button
           onClick={submit}
-          whileHover={entry.length === digits ? { scale: 1.04 } : {}}
-          whileTap={entry.length === digits ? { scale: 0.96 } : {}}
+          whileHover={entry.length === digits && !locked ? { scale: 1.04 } : {}}
+          whileTap={entry.length === digits && !locked ? { scale: 0.96 } : {}}
           disabled={entry.length < digits || locked}
           className={cn(
-            "flex h-13 w-13 items-center justify-center rounded-sm border font-serif text-[10px] uppercase tracking-widest transition-all",
+            "flex items-center justify-center rounded-sm border font-serif text-[10px] uppercase tracking-widest transition-all touch-manipulation",
             entry.length === digits && !locked
               ? "border-primary/50 bg-primary/15 text-primary hover:bg-primary hover:text-primary-foreground"
               : "border-border/20 bg-transparent text-muted-foreground/30"

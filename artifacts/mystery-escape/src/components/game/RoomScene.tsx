@@ -3,32 +3,85 @@ import { InteractionMarker } from "@/components/game/InteractionMarker";
 import { AtmosphericOverlay } from "@/components/game/AtmosphericOverlay";
 import { useGame, type HotspotData } from "@/contexts/GameContext";
 import { useInventory } from "@/contexts/InventoryContext";
+import { usePuzzle } from "@/contexts/PuzzleContext";
+import type { PuzzleDefinition } from "@/puzzles/types";
 
 const HOTSPOTS: HotspotData[] = [
   { id: "desk",      label: "Antique Desk",    x: 22, y: 68, description: "An ornate mahogany desk covered in scattered papers." },
   { id: "painting",  label: "Faded Portrait",   x: 58, y: 30, description: "A faded oil portrait of a stern-faced Victorian gentleman.", canTake: true },
-  { id: "clock",     label: "Stopped Clock",    x: 82, y: 52, description: "A grandfather clock frozen at 11:47." },
-  { id: "bookcase",  label: "Dusty Bookcase",   x: 12, y: 44, description: "Rows of leather-bound volumes coated in dust." },
+  { id: "clock",     label: "Stopped Clock",    x: 82, y: 52, description: "A grandfather clock frozen at 11:47.", puzzleId: "room-clock-sequence" },
+  { id: "bookcase",  label: "Dusty Bookcase",   x: 12, y: 44, description: "Rows of leather-bound volumes coated in dust.", puzzleId: "room-bookcase-symbol" },
   { id: "fireplace", label: "Cold Hearth",      x: 50, y: 72, description: "A cold hearth with long-dead embers.", canTake: true },
-  { id: "safe",      label: "Wall Safe",        x: 73, y: 38, description: "A wall safe hidden behind a loose panel." },
+  { id: "safe",      label: "Wall Safe",        x: 73, y: 38, description: "A wall safe hidden behind a loose panel.", puzzleId: "room-safe-keypad" },
 ];
 
+const PUZZLE_DEFINITIONS: Record<string, PuzzleDefinition> = {
+  "room-safe-keypad": {
+    id: "room-safe-keypad",
+    type: "keypad",
+    title: "Wall Safe",
+    description: "A combination lock seals the safe. The clock hands hold the secret.",
+    config: {
+      digits: 4,
+      solution: "1147",
+      hint: "The clock is frozen at 11:47 — read the hands as digits.",
+    },
+  },
+  "room-bookcase-symbol": {
+    id: "room-bookcase-symbol",
+    type: "symbol-match",
+    title: "Arcane Bookcase",
+    description: "Three symbols carved into the shelf must be matched in the order shown.",
+    config: {
+      pool: ["☽", "✦", "⚡", "⊕", "△", "◈", "♾", "⚗"],
+      solution: ["☽", "⊕", "✦"],
+      hint: "The portrait's eyes trace a path — moon, circle, star.",
+    },
+  },
+  "room-clock-sequence": {
+    id: "room-clock-sequence",
+    type: "sequence-memory",
+    title: "Stopped Clock",
+    description: "Pressing the clock's face plates in a hidden order will wind the mechanism.",
+    config: {
+      gridSize: 3,
+      sequence: [0, 4, 2, 6, 8],
+      showMs: 700,
+      hint: "Watch carefully — the pattern repeats once before you must act.",
+    },
+  },
+};
+
 export function RoomScene() {
-  const { openInspect, examinedIds, activeAction, triggerRoomTransition } = useGame();
+  const { openInspect, examinedIds, markExamined, activeAction, triggerRoomTransition, completeObjective } = useGame();
   const { selectedSlot, selectedItem, useItem } = useInventory();
+  const { openPuzzle, solvedIds } = usePuzzle();
 
   const handleActivate = (hotspot: HotspotData) => {
-    // USE mode: try to use the selected item on this hotspot
     if (activeAction === "use") {
       if (selectedSlot === null || !selectedItem) {
-        // No item selected — open inspect to provide feedback in context
         openInspect(hotspot);
         return;
       }
       useItem(selectedSlot, hotspot.id);
       return;
     }
-    // All other modes open the inspect dialog
+
+    markExamined(hotspot.id);
+
+    if (hotspot.puzzleId) {
+      const def = PUZZLE_DEFINITIONS[hotspot.puzzleId];
+      if (def) {
+        openPuzzle(def);
+        if (hotspot.id === "clock") completeObjective("check-clock");
+        if (hotspot.id === "desk")  completeObjective("search-desk");
+        return;
+      }
+    }
+
+    if (hotspot.id === "painting") completeObjective("examine-portrait");
+    if (hotspot.id === "desk")     completeObjective("search-desk");
+
     openInspect(hotspot);
   };
 
@@ -76,6 +129,7 @@ export function RoomScene() {
             key={spot.id}
             hotspot={spot}
             examined={examinedIds.has(spot.id)}
+            puzzleSolved={spot.puzzleId ? solvedIds.has(spot.puzzleId) : undefined}
             onActivate={handleActivate}
           />
         ))}

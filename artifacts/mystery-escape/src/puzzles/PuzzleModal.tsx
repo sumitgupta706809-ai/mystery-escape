@@ -15,6 +15,8 @@ const PUZZLE_LABELS: Record<string, string> = {
   "sequence-memory": "Memory Sequence",
 };
 
+const SUCCESS_PARTICLES = Array.from({ length: 12 });
+
 export function PuzzleModal() {
   const { activePuzzle, closePuzzle, markSolved, solvedIds } = usePuzzle();
   const [outcome, setOutcome] = useState<Outcome>("idle");
@@ -25,12 +27,12 @@ export function PuzzleModal() {
     setTimeout(() => {
       setOutcome("idle");
       closePuzzle();
-    }, 1800);
+    }, 2000);
   }, [activePuzzle, markSolved, closePuzzle]);
 
   const handleFail = useCallback(() => {
     setOutcome("failure");
-    setTimeout(() => setOutcome("idle"), 1600);
+    setTimeout(() => setOutcome("idle"), 1800);
   }, []);
 
   const handleClose = useCallback(() => {
@@ -54,27 +56,35 @@ export function PuzzleModal() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
             onClick={handleClose}
-            className="fixed inset-0 z-50 bg-black/75 backdrop-blur-[3px]"
+            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-[4px]"
             data-testid="puzzle-backdrop"
           />
 
           {/* Modal card */}
           <motion.div
             key="puzzle-card"
-            initial={{ opacity: 0, scale: 0.88, y: 24 }}
+            initial={{ opacity: 0, scale: 0.85, y: 30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.92, y: 12 }}
-            transition={{ type: "spring", stiffness: 320, damping: 26 }}
-            className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-[60] mx-auto w-full max-w-sm"
+            exit={{ opacity: 0, scale: 0.9, y: 16 }}
+            transition={{ type: "spring", stiffness: 340, damping: 28 }}
+            className="fixed inset-x-3 sm:inset-x-auto top-1/2 -translate-y-1/2 z-[60] mx-auto w-full sm:max-w-sm"
             data-testid="puzzle-modal"
           >
-            <div className="relative rounded-sm border border-primary/20 bg-card/99 shadow-[0_0_80px_rgba(0,0,0,0.9)] overflow-hidden">
+            {/* Outer glow ring on entrance */}
+            <motion.div
+              initial={{ opacity: 0.6, scale: 1.04 }}
+              animate={{ opacity: 0, scale: 1.08 }}
+              transition={{ duration: 0.7, ease: "easeOut" }}
+              className="absolute -inset-1 rounded-sm bg-primary/10 blur-md pointer-events-none"
+            />
+
+            <div className="relative rounded-sm border border-primary/20 bg-card/99 shadow-[0_0_80px_rgba(0,0,0,0.95)] overflow-hidden">
 
               {/* Ambient top glow line */}
-              <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+              <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
 
               {/* Header */}
-              <div className="flex items-start justify-between gap-3 border-b border-border/40 px-5 py-4">
+              <div className="flex items-start justify-between gap-3 border-b border-border/40 px-4 sm:px-5 py-4">
                 <div>
                   <p className="font-serif text-[9px] uppercase tracking-[0.2em] text-muted-foreground/50 mb-0.5">
                     {PUZZLE_LABELS[activePuzzle.type] ?? "Puzzle"}
@@ -99,7 +109,7 @@ export function PuzzleModal() {
               </div>
 
               {/* Puzzle body */}
-              <div className="relative px-5 py-6">
+              <div className="relative px-4 sm:px-5 py-5 sm:py-6">
                 {activePuzzle.type === "keypad" && (
                   <KeypadPuzzle
                     config={activePuzzle.config}
@@ -124,9 +134,15 @@ export function PuzzleModal() {
                 )}
 
                 {/* Already-solved overlay */}
-                {alreadySolved && activePuzzle.type === "keypad" && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-card/50 backdrop-blur-[1px] rounded-sm">
-                    <Lock className="h-6 w-6 text-emerald-400/70" strokeWidth={1.5} />
+                {alreadySolved && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-card/60 backdrop-blur-[2px] rounded-sm">
+                    <motion.div
+                      initial={{ scale: 0.5, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                    >
+                      <Lock className="h-8 w-8 text-emerald-400/70" strokeWidth={1.5} />
+                    </motion.div>
                     <p className="font-serif text-xs text-emerald-400/80 uppercase tracking-widest">Already Unlocked</p>
                   </div>
                 )}
@@ -138,21 +154,30 @@ export function PuzzleModal() {
                       key="success-overlay"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-card/90 backdrop-blur-[2px] rounded-sm"
+                      exit={{ opacity: 0, transition: { duration: 0.3 } }}
+                      className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-card/90 backdrop-blur-[2px] rounded-sm overflow-hidden"
                       data-testid="puzzle-success-overlay"
                     >
+                      {/* Sweep glow */}
                       <motion.div
-                        initial={{ scale: 0.3, opacity: 0 }}
+                        initial={{ scaleX: 0, opacity: 0.8 }}
+                        animate={{ scaleX: 1, opacity: 0 }}
+                        transition={{ duration: 0.6, ease: "easeOut" }}
+                        className="absolute inset-0 bg-gradient-to-r from-transparent via-emerald-400/20 to-transparent"
+                      />
+
+                      <motion.div
+                        initial={{ scale: 0.2, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        transition={{ type: "spring", stiffness: 350, damping: 18, delay: 0.05 }}
+                        transition={{ type: "spring", stiffness: 360, damping: 16, delay: 0.05 }}
                       >
                         <CheckCircle2 className="h-14 w-14 text-emerald-400" strokeWidth={1} />
                       </motion.div>
+
                       <motion.div
-                        initial={{ opacity: 0, y: 6 }}
+                        initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2 }}
+                        transition={{ delay: 0.18 }}
                         className="text-center"
                       >
                         <p className="font-serif text-lg text-emerald-400/90">Solved</p>
@@ -160,21 +185,35 @@ export function PuzzleModal() {
                           Puzzle complete
                         </p>
                       </motion.div>
-                      {/* Particle ring */}
-                      {Array.from({ length: 8 }).map((_, i) => (
-                        <motion.div
-                          key={i}
-                          initial={{ opacity: 0, scale: 0 }}
-                          animate={{
-                            opacity: [0, 0.8, 0],
-                            scale: [0.2, 1.4],
-                            x: Math.cos((i / 8) * Math.PI * 2) * 50,
-                            y: Math.sin((i / 8) * Math.PI * 2) * 50,
-                          }}
-                          transition={{ duration: 0.7, delay: 0.1 + i * 0.04 }}
-                          className="absolute h-1.5 w-1.5 rounded-full bg-emerald-400/70"
-                        />
-                      ))}
+
+                      {/* Particle burst */}
+                      {SUCCESS_PARTICLES.map((_, i) => {
+                        const angle = (i / SUCCESS_PARTICLES.length) * Math.PI * 2;
+                        const dist = 48 + (i % 3) * 14;
+                        return (
+                          <motion.div
+                            key={i}
+                            initial={{ opacity: 0, scale: 0, x: 0, y: 0 }}
+                            animate={{
+                              opacity: [0, 1, 0],
+                              scale: [0.1, 1, 0.4],
+                              x: Math.cos(angle) * dist,
+                              y: Math.sin(angle) * dist,
+                            }}
+                            transition={{
+                              duration: 0.65,
+                              delay: 0.08 + i * 0.03,
+                              ease: "easeOut",
+                            }}
+                            className={cn(
+                              "absolute rounded-full",
+                              i % 3 === 0 ? "h-2 w-2 bg-emerald-400/80" :
+                              i % 3 === 1 ? "h-1.5 w-1.5 bg-emerald-300/60" :
+                                            "h-1 w-1 bg-emerald-500/70"
+                            )}
+                          />
+                        );
+                      })}
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -191,19 +230,33 @@ export function PuzzleModal() {
                       className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-card/90 backdrop-blur-[2px] rounded-sm"
                       data-testid="puzzle-failure-overlay"
                     >
+                      {/* Red flash */}
                       <motion.div
-                        initial={{ scale: 0.5, rotate: -15 }}
+                        initial={{ opacity: 0.4 }}
+                        animate={{ opacity: 0 }}
+                        transition={{ duration: 0.5 }}
+                        className="absolute inset-0 bg-destructive/15 rounded-sm"
+                      />
+
+                      <motion.div
+                        initial={{ scale: 0.4, rotate: -20 }}
                         animate={{ scale: 1, rotate: 0 }}
-                        transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                        transition={{ type: "spring", stiffness: 420, damping: 14 }}
                       >
                         <XCircle className="h-14 w-14 text-destructive/80" strokeWidth={1} />
                       </motion.div>
-                      <div className="text-center">
-                        <p className="font-serif text-base text-destructive/80">Failed</p>
+
+                      <motion.div
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 }}
+                        className="text-center"
+                      >
+                        <p className="font-serif text-base text-destructive/80">Incorrect</p>
                         <p className="font-serif text-[10px] uppercase tracking-widest text-muted-foreground/50 mt-0.5">
                           Try again
                         </p>
-                      </div>
+                      </motion.div>
                     </motion.div>
                   )}
                 </AnimatePresence>

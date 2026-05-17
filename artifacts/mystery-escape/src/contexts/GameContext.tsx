@@ -17,6 +17,7 @@ export interface HotspotData {
   canTake?: boolean;
   examined?: boolean;
   itemId?: string;
+  puzzleId?: string;
 }
 
 interface GameContextValue {
