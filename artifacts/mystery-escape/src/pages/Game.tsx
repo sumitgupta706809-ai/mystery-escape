@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Search, Hand, Zap, Combine } from "lucide-react";
 import { GameProvider, useGame, type ActionMode } from "@/contexts/GameContext";
 import { InventoryProvider } from "@/contexts/InventoryContext";
+import { PuzzleProvider } from "@/contexts/PuzzleContext";
 import { RoomScene } from "@/components/game/RoomScene";
 import { InventoryBar } from "@/components/game/InventoryBar";
 import { GameHUD } from "@/components/game/GameHUD";
@@ -10,13 +11,15 @@ import { PauseMenu } from "@/components/game/PauseMenu";
 import { InspectDialog } from "@/components/game/InspectDialog";
 import { RoomTransition } from "@/components/game/RoomTransition";
 import { UseFeedbackToast } from "@/components/game/UseFeedbackToast";
+import { PuzzleDemoPanel } from "@/components/game/PuzzleDemoPanel";
+import { PuzzleModal } from "@/puzzles/PuzzleModal";
 import { cn } from "@/lib/utils";
 
 const ACTIONS: { id: ActionMode; label: string; icon: typeof Search; description: string }[] = [
-  { id: "examine", label: "Examine", icon: Search, description: "Look closely at objects" },
-  { id: "take",    label: "Take",    icon: Hand,   description: "Pick up items" },
-  { id: "use",     label: "Use",     icon: Zap,    description: "Use selected item" },
-  { id: "combine", label: "Combine", icon: Combine,description: "Combine two items" },
+  { id: "examine", label: "Examine", icon: Search,  description: "Look closely at objects" },
+  { id: "take",    label: "Take",    icon: Hand,    description: "Pick up items" },
+  { id: "use",     label: "Use",     icon: Zap,     description: "Use selected item" },
+  { id: "combine", label: "Combine", icon: Combine, description: "Combine two items" },
 ];
 
 function ActionBar() {
@@ -77,6 +80,7 @@ function GameLayout() {
       <div className="relative flex-1 min-h-0">
         <RoomScene />
         <GameHUD />
+        <PuzzleDemoPanel />
       </div>
 
       <ActionBar />
@@ -86,6 +90,7 @@ function GameLayout() {
       <PauseMenu />
       <RoomTransition />
       <UseFeedbackToast />
+      <PuzzleModal />
     </motion.div>
   );
 }
@@ -94,7 +99,9 @@ export default function Game() {
   return (
     <GameProvider>
       <InventoryProvider>
-        <GameLayout />
+        <PuzzleProvider>
+          <GameLayout />
+        </PuzzleProvider>
       </InventoryProvider>
     </GameProvider>
   );
